@@ -23,8 +23,7 @@ tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.99, "Learning rate dec
 tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Clip gradients to this norm.")
 tf.app.flags.DEFINE_integer("batch_size", 64, "Batch size to use during training.")
 tf.app.flags.DEFINE_float("keep_prob", 0.95, "Keep prob of output.")
-tf.app.flags.DEFINE_integer("size", 100, "Size of each model layer.")
-tf.app.flags.DEFINE_integer("num_layers", 5, "Number of layers in the model.")
+tf.app.flags.DEFINE_integer("state_size", 256, "Size of encoder and decoder hidden layer.")
 tf.app.flags.DEFINE_string("data_dir", "data/", "Data directory")
 tf.app.flags.DEFINE_string("vocab_path", "data/vocab.dat", "Path to vocab file (default: ./data/squad/vocab.dat)")
 tf.app.flags.DEFINE_integer("embedding_size", 100, "Size of the pretrained vocabulary.")
@@ -37,22 +36,15 @@ tf.app.flags.DEFINE_integer("steps_per_print", 1,
                             "How many training steps to print info.")
 tf.app.flags.DEFINE_integer("steps_per_checkpoint", 200,
                             "How many training steps to do per checkpoint.")
-tf.app.flags.DEFINE_boolean("decode", True,
-                            "Set to True for interactive decoding.")
-tf.app.flags.DEFINE_boolean("self_test", False,
-                            "Run a self-test if this is set to True.")
-tf.app.flags.DEFINE_boolean("use_fp16", False,
-                            "Train using fp16 instead of fp32.")
+tf.app.flags.DEFINE_integer("window_batch", 3, "window size / batch size")
+
+tf.app.flags.DEFINE_string("retrain_embeddings", False, "Whether to retrain word embeddings")
 
 FLAGS = tf.app.flags.FLAGS
 
 # We use a number of buckets and pad to the closest one for efficiency.
 # See seq2seq_model.Seq2SeqModel for details of how they work.
 _buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
-
-SOURCE_EMBEDDING_KEY = "embedding_attention_seq2seq/rnn/embedding_wrapper/embedding"
-TARGET_EMBEDDING_KEY = "embedding_attention_seq2seq/embedding_attention_decoder/embedding"
-
 
 class DataConfig(object):
     """docstring for DataDir"""
@@ -105,23 +97,10 @@ def read_data(source_path, target_path, max_size=None):
     return data_set
 
 
-def create_model(session, embeddings=None, forward_only=False):
+def initialize_model(session, model):
     """Create translation model and initialize or load parameters in session."""
-    dtype = tf.float16 if FLAGS.use_fp16 else tf.float32
-    model = seq2seq_model.Seq2SeqModel(
-        FLAGS.vocab_size,
-        FLAGS.vocab_size,
-        _buckets,
-        FLAGS.size,
-        FLAGS.embedding_size,
-        FLAGS.num_layers,
-        FLAGS.max_gradient_norm,
-        FLAGS.batch_size,
-        FLAGS.learning_rate,
-        FLAGS.learning_rate_decay_factor,
-        keep_prob=FLAGS.keep_prob,
-        forward_only=forward_only,
-        dtype=dtype)
+
+
     ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
     if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
         print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
@@ -129,14 +108,6 @@ def create_model(session, embeddings=None, forward_only=False):
     else:
         print("Created model with fresh parameters.")
         session.run(tf.global_variables_initializer())
-        if embeddings is not None:
-            embedding_variable = [v for v in tf.trainable_variables() if
-                                  SOURCE_EMBEDDING_KEY in v.name or TARGET_EMBEDDING_KEY in v.name]
-        if len(embedding_variable) != 2:
-            print("Word vector variable not found or too many.")
-            sys.exit(1)
-        session.run(embedding_variable[0].assign(embeddings))
-        session.run(embedding_variable[1].assign(embeddings))
     return model
 
 
@@ -157,8 +128,8 @@ def train():
         # Create model.
         with tf.device('/gpu:1'):
             print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
-            model = create_model(sess, embeddings, False)
-
+            model = ECM_model.ECMModel(embeddings, vocab_label, emotion_label, rev_vocab, FLAGS)
+            initialize_model(sess, model)
             tic = time.time()
             params = tf.trainable_variables()
             num_params = sum(map(lambda t: np.prod(tf.shape(t.value()).eval()), params))
@@ -170,85 +141,9 @@ def train():
                   % FLAGS.max_train_data_size)
             dev_set = read_data(data_config.val_from, data_config.val_to)
             train_set = read_data(data_config.train_from, data_config.train_to, FLAGS.max_train_data_size)
-            train_bucket_sizes = [len(train_set[b]) for b in xrange(len(_buckets))]
-            train_total_size = float(sum(train_bucket_sizes))
-
-            # A bucket scale is a list of increasing numbers from 0 to 1 that we'll use
-            # to select a bucket. Length of [scale[i], scale[i+1]] is proportional to
-            # the size if i-th training bucket, as used later.
-            train_buckets_scale = [sum(train_bucket_sizes[:i + 1]) / train_total_size
-                                   for i in xrange(len(train_bucket_sizes))]
-
-            # This is the training loop.
-            step_time, loss = 0.0, 0.0
-            current_step = 0
-            previous_losses = []
-            breakCount = 0
 
             while True:
-                # Choose a bucket according to data distribution. We pick a random number
-                # in [0, 1] and use the corresponding interval in train_buckets_scale.
-                random_number_01 = np.random.random_sample()
-                bucket_id = min([i for i in xrange(len(train_buckets_scale))
-                                 if train_buckets_scale[i] > random_number_01])
-
-                # Get a batch and make a step.
-                start_time = time.time()
-                encoder_inputs, decoder_inputs, target_weights = model.get_batch(
-                    train_set, bucket_id)
-                _, step_loss, _ = model.step(sess, encoder_inputs, decoder_inputs,
-                                             target_weights, bucket_id, False)
-                step_time += (time.time() - start_time) / FLAGS.steps_per_checkpoint
-                loss += step_loss / FLAGS.steps_per_checkpoint
-                current_step += 1
-
-                if current_step % FLAGS.steps_per_print == 0:
-                    perplexity = math.exp(float(loss)) if loss < 300 else float("inf")
-                    print("global step %d learning rate %.4f step_loss %.2f perplexity "
-                          "%.2f" % (model.global_step.eval(), model.learning_rate.eval(),
-                                    step_loss, perplexity))
-
-                # Once in a while, we save checkpoint, print statistics, and run evals.
-                if current_step % FLAGS.steps_per_checkpoint == 0:
-                    # Print statistics for the previous epoch.
-                    perplexity = math.exp(float(loss)) if loss < 300 else float("inf")
-                    print("checkpoint here")
-                    print("====== global step %d learning rate %.4f step-time %.2f perplexity "
-                          "%.2f" % (model.global_step.eval(), model.learning_rate.eval(),
-                                    step_time, perplexity))
-                    logFile.write("====== global step %d learning rate %.4f step-time %.2f perplexity "
-                          "%.2f" % (model.global_step.eval(), model.learning_rate.eval(),
-                                    step_time, perplexity))
-                    logFile.write("\n")
-                    # Decrease learning rate if no improvement was seen over last 3 times.
-                    if len(previous_losses) > 2 and loss > max(previous_losses[-3:]):
-                        sess.run(model.learning_rate_decay_op)
-                    previous_losses.append(loss)
-                    # Save checkpoint and zero timer and loss.
-                    checkpoint_path = os.path.join(FLAGS.train_dir, "translate.ckpt")
-                    model.saver.save(sess, checkpoint_path, global_step=model.global_step)
-                    if perplexity < 2:
-                        breakCount += 1
-                        print("breakCount ", breakCount)
-                    step_time, loss = 0.0, 0.0
-                    # Run evals on development set and print their perplexity.
-                    for bucket_id in xrange(len(_buckets)):
-                        if len(dev_set[bucket_id]) == 0:
-                            print("  eval: empty bucket %d" % (bucket_id))
-                            continue
-                        encoder_inputs, decoder_inputs, target_weights = model.get_batch(
-                            dev_set, bucket_id)
-                        _, eval_loss, _ = model.step(sess, encoder_inputs, decoder_inputs,
-                                                     target_weights, bucket_id, True)
-                        eval_ppx = math.exp(float(eval_loss)) if eval_loss < 300 else float(
-                            "inf")
-                        print("  eval: bucket %d perplexity %.2f" % (bucket_id, eval_ppx))
-                    sys.stdout.flush()
-                    if breakCount > 20:
-                        print("successfully breakdown")
-                        logFile.close()
-                        break
-                
+                model.train(sess, train_set)
                 
 
 
@@ -304,30 +199,7 @@ def decode():
             sys.stdout.flush()
             sentence = sys.stdin.readline()
 
-
-def self_test():
-    """Test the translation model."""
-    with tf.Session() as sess:
-        print("Self-test for neural translation model.")
-        # Create model with vocabularies of 10, 2 small buckets, 2 layers of 32.
-        model = seq2seq_model.Seq2SeqModel(10, 10, [(3, 3), (6, 6)], 32, 2,
-                                           5.0, 32, 0.3, 0.99, num_samples=8)
-        sess.run(tf.global_variables_initializer())
-
-        # Fake data set for both the (3, 3) and (6, 6) bucket.
-        data_set = ([([1, 1], [2, 2]), ([3, 3], [4]), ([5], [6])],
-                    [([1, 1, 1, 1, 1], [2, 2, 2, 2, 2]), ([3, 3, 3], [5, 6])])
-        for _ in xrange(5):  # Train the fake model for 5 steps.
-            bucket_id = random.choice([0, 1])
-            encoder_inputs, decoder_inputs, target_weights = model.get_batch(
-                data_set, bucket_id)
-            model.step(sess, encoder_inputs, decoder_inputs, target_weights,
-                        bucket_id, False)
-
-
 def main(_):
-    if FLAGS.self_test:
-        self_test()
     elif FLAGS.decode:
         decode()
     else:
