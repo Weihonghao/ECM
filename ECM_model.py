@@ -39,7 +39,7 @@ class ECMModel(object):
         self.question_len = tf.placeholder(tf.int32, shape=[None], name= 'question_len')
         self.answer = tf.placeholder(tf.int32, shape=[None, None], name= 'answer')
         self.answer_len = tf.placeholder(tf.int32, shape=[None], name= 'answer_len')
-        self.emotionTag = tf.placeholder(tf.int32, shape=[None], name= 'emotionTag')
+        self.emotion_tag = tf.placeholder(tf.int32, shape=[None], name= 'emotion_tag')
         self.dropout_placeholder = tf.placeholder(dtype=tf.float32, name="dropout", shape=())
         self.LQ = tf.placeholder(dtype=tf.int32, name='LQ', shape=())
         self.LA = tf.placeholder(dtype=tf.int32, name='LA', shape=())
@@ -51,10 +51,8 @@ class ECMModel(object):
 
             question_embeddings = tf.nn.embedding_lookup(embeddings, self.question)
             self.q = tf.reshape(question_embeddings, shape = [-1, self.LQ, self.config.embedding_size])
-            if not forward_only:
-                answer_embeddings = tf.nn.embedding_lookup(embeddings, self.answer)
-                self.a = tf.reshape(answer_embeddings, shape = [-1, self.LA, self.config.embedding_size]) 
-        
+            answer_embeddings = tf.nn.embedding_lookup(embeddings, self.answer)
+            self.a = tf.reshape(answer_embeddings, shape = [-1, self.LA, self.config.embedding_size])
 
     def encode(self, inputs, sequence_length, encoder_state_input, dropout = 1.0):
         """
@@ -121,9 +119,6 @@ class ECMModel(object):
                     initial_cell_output,
                     initial_loop_state)
 
-
-
-
         def loop_fn_transition(time, previous_output, previous_state, previous_loop_state):
             # get next state
             def get_next_input():
@@ -185,7 +180,7 @@ class ECMModel(object):
         #non_emotion_vocab = (1-alpha) * tf.softmax(wgo * decode_output)
         return tf.arg_max(tf.concat([alpha * decode_output[:self.emotion_num], (1-alpha) * decode_output[self.emotion_num:]], 1)) #% self.vocab_size
 
-    def create_feed_dict(self, question_batch, question_len_batch, answer_batch=None, answer_len_batch=None, is_train=True):
+    def create_feed_dict(self, question_batch, question_len_batch, emotion_tag_batch, answer_batch=None, answer_len_batch=None, is_train=True):
         feed_dict = {}
         LQ = np.max(question_len_batch)
         def add_paddings(sentence, max_length):
@@ -205,6 +200,7 @@ class ECMModel(object):
         feed_dict[self.question] = padded_question
         feed_dict[self.question_len] = question_len_batch
         feed_dict[self.LQ] = LQ
+        feed_dict[self.emotion_tag] = emotion_tag_batch
 
         padded_question = padding_batch(question_batch, LQ)
         if is_train:
@@ -221,7 +217,9 @@ class ECMModel(object):
     
         return feed_dict
 
-    def train(self, input, output, emotionTag):
+    def train(self, training_set):
+        question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
+        input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch, answer_len_batch, is_train=True)
 
         def emotion_distribution(results):
             return tf.cast(results, dtype=tf.int64) / self.real_vocab_size
@@ -235,7 +233,10 @@ class ECMModel(object):
         tfloss = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(loss(results))
         return self.sess.run(tfloss, feed_dict={self.input:input, self.output:output, self.emotionTag: emotionTag})
 
-    def test(self, input, output, emotionTag):
+    def test(self, test_set):
+        question_batch, question_len_batch, tag_batch = training_set
+        input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch=None, answer_len_batch=None, is_train=False)
+        
         encoder_outputs = self.encode(inputs, mask, encoder_state_input, dropout = 1.0)[1]
         results = self.decode(encoder_outputs)
         tfids = tf.arg_max(results)

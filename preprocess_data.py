@@ -250,5 +250,7 @@ def prepare_data():
     data_to_token_ids(valid_path + ".from", x_ids_path, vocab_path)
     data_to_token_ids(valid_path + ".to", y_ids_path, vocab_path)
 
+
+
 if __name__ == '__main__':
   prepare_data()

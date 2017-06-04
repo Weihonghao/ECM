@@ -36,3 +36,37 @@ def preprocess_dataset(dataset, question_maxlen, context_maxlen):
 
 def strip(x):
     return map(int, x.strip().split(" "))
+
+def get_minibatches(data, minibatch_size, shuffle=True):
+    list_data = type(data) is list and (type(data[0]) is list or type(data[0]) is np.ndarray)
+    data_size = len(data[0]) if list_data else len(data)
+    indices = np.arange(data_size)
+    if shuffle:
+        np.random.shuffle(indices)
+    for minibatch_start in np.arange(0, data_size, minibatch_size):
+        minibatch_indices = indices[minibatch_start:minibatch_start + minibatch_size]
+        yield [minibatch(d, minibatch_indices) for d in data] if list_data \
+            else minibatch(data, minibatch_indices)
+
+
+def get_minibatches_with_window(data, batch_size, window_batch):
+    list_data = type(data) is list and (type(data[0]) is list or type(data[0]) is np.ndarray)
+    data_size = len(data[0]) if list_data else len(data)
+    batch_num = int(np.ceil(data_size * 1.0 / batch_size))
+    window_size = min([batch_size*window_batch, data_size])
+    window_start = np.random.randint(data_size-window_size+1, size=(batch_num,))
+    # print(window_start)
+    for i in range(batch_num):
+        window_index = np.arange(window_start[i], window_start[i]+window_size)
+        # print(window_index)
+        minibatch_indices = np.random.choice(window_index,size = (batch_size,),replace=False)
+        # print(minibatch_indices)
+        yield [minibatch(d, minibatch_indices) for d in data] if list_data \
+            else minibatch(data, minibatch_indices)
+
+def minibatches(data, batch_size, shuffle=True, window_batch=None):
+    batches = [np.array(col) for col in zip(*data)]
+    if window_batch is None:
+        return get_minibatches(batches, batch_size, shuffle)
+    else:
+        return get_minibatches_with_window(batches, batch_size, window_batch)
