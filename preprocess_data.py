@@ -45,6 +45,7 @@ def setup_args():
     parser.add_argument("--vocab_dir", default=vocab_dir)
     parser.add_argument("--glove_dim", default=100, type=int)
     parser.add_argument("--random_init", default=True, type=bool)
+    parser.add_argument("--word_cnt_threshold", default=0, type=int)
     return parser.parse_args()
 
 def basic_tokenizer(sentence):
@@ -55,28 +56,48 @@ def basic_tokenizer(sentence):
   return [w for w in words if w]
 
 
-def create_vocabulary(vocabulary_path, data_paths, tokenizer=None):
-    if not gfile.Exists(vocabulary_path):
-        print("Creating vocabulary %s from data %s" % (vocabulary_path, str(data_paths)))
-        vocab = {}
-        for path in data_paths:
-            with open(path, mode="rb") as f:
-                counter = 0
-                for line in f:
-                    counter += 1
-                    if counter % 100000 == 0:
-                        print("processing line %d" % counter)
-                    tokens = tokenizer(line) if tokenizer else basic_tokenizer(line)
-                    for w in tokens:
-                        if w in vocab:
-                            vocab[w] += 1
+def create_vocabulary(vocabulary_path, emotion_vocab_path, data_paths, threshold=0, tokenizer=None):
+    # if not gfile.Exists(vocabulary_path):
+    print("Creating vocabulary %s (emotion vocab %s, th = %d) from data %s" \
+         % (vocabulary_path, emotion_vocab_path, threshold, str(data_paths)))
+    emotion_vocab = {}
+    if gfile.Exists(emotion_vocab_path):
+      with gfile.GFile(emotion_vocab_path, mode="rb") as ef:
+        for line in ef.readlines():
+          w = line.strip()
+          emotion_vocab[w] = 0
+    else:
+      raise ValueError("Emotion vocabulary file %s not found.", emotion_vocab_path)
+
+    non_emotion_vocab = {}
+    for path in data_paths:
+        with open(path, mode="rb") as f:
+            counter = 0
+            for line in f:
+                counter += 1
+                if counter % 100000 == 0:
+                    print("processing line %d" % counter)
+                tokens = tokenizer(line) if tokenizer else basic_tokenizer(line)
+                for w in tokens:
+                    if w in emotion_vocab:
+                        emotion_vocab[w] += 1
+                    else:
+                        if w in non_emotion_vocab:
+                            non_emotion_vocab[w] += 1
                         else:
-                            vocab[w] = 1
-        vocab_list = _START_VOCAB + sorted(vocab, key=vocab.get, reverse=True)
-        print("Vocabulary size: %d" % len(vocab_list))
-        with gfile.GFile(vocabulary_path, mode="wb") as vocab_file:
-            for w in vocab_list:
-                vocab_file.write(w + b"\n")
+                            non_emotion_vocab[w] = 1
+    if threshold > 0:
+      non_emotion_vocab = {k: v for k, v in non_emotion_vocab.iteritems() if v > threshold}
+    vocab_list = _START_VOCAB + sorted(non_emotion_vocab, key=non_emotion_vocab.get, reverse=True) \
+                 + sorted(emotion_vocab, key=emotion_vocab.get, reverse=True)
+    non_emotion_size = len(_START_VOCAB) + len(non_emotion_vocab)
+    print("Non emotion vocabulary size: %d" % non_emotion_size)
+    print("Emotion vocabulary size: %d" % len(emotion_vocab))
+    print("Total vocabulary size: %d" % len(vocab_list))
+    with gfile.GFile(vocabulary_path, mode="wb") as vocab_file:
+        vocab_file.write(str(non_emotion_size) + b"\n")
+        for w in vocab_list:
+            vocab_file.write(w + b"\n")
 
 def initialize_vocabulary(vocabulary_path):
   """Initialize vocabulary from file.
@@ -96,10 +117,11 @@ def initialize_vocabulary(vocabulary_path):
   if gfile.Exists(vocabulary_path):
     rev_vocab = []
     with gfile.GFile(vocabulary_path, mode="rb") as f:
+      non_emotion_size = int(f.readline().strip())
       rev_vocab.extend(f.readlines())
     rev_vocab = [tf.compat.as_bytes(line.strip()) for line in rev_vocab]
     vocab = dict([(x, y) for (y, x) in enumerate(rev_vocab)])
-    return vocab, rev_vocab
+    return non_emotion_size, vocab, rev_vocab
   else:
     raise ValueError("Vocabulary file %s not found.", vocabulary_path)
 
@@ -144,19 +166,19 @@ def data_to_token_ids(data_path, target_path, vocabulary_path,
       if None, basic_tokenizer will be used.
     normalize_digits: Boolean; if true, all digits are replaced by 0s.
   """
-  if not gfile.Exists(target_path):
-    print("Tokenizing data in %s" % data_path)
-    vocab, _ = initialize_vocabulary(vocabulary_path)
-    with gfile.GFile(data_path, mode="rb") as data_file:
-      with gfile.GFile(target_path, mode="w") as tokens_file:
-        counter = 0
-        for line in data_file:
-          counter += 1
-          if counter % 100000 == 0:
-            print("  tokenizing line %d" % counter)
-          token_ids = sentence_to_token_ids(tf.compat.as_bytes(line), vocab,
-                                            tokenizer, normalize_digits)
-          tokens_file.write(" ".join([str(tok) for tok in token_ids]) + "\n")
+  # if not gfile.Exists(target_path):
+  print("Tokenizing data in %s" % data_path)
+  _, vocab, _ = initialize_vocabulary(vocabulary_path)
+  with gfile.GFile(data_path, mode="rb") as data_file:
+    with gfile.GFile(target_path, mode="w") as tokens_file:
+      counter = 0
+      for line in data_file:
+        counter += 1
+        if counter % 100000 == 0:
+          print("  tokenizing line %d" % counter)
+        token_ids = sentence_to_token_ids(tf.compat.as_bytes(line), vocab,
+                                          tokenizer, normalize_digits)
+        tokens_file.write(" ".join([str(tok) for tok in token_ids]) + "\n")
 
 def process_glove(args, vocab_list, save_path, size=4e5, random_init=True):
     """
@@ -200,18 +222,19 @@ def process_glove(args, vocab_list, save_path, size=4e5, random_init=True):
 
 def prepare_data():
     args = setup_args()
+    emotion_vocab_path = pjoin(args.vocab_dir, "emotion_vocab.txt")
     vocab_path = pjoin(args.vocab_dir, "vocab.dat")
     train_path = pjoin(args.source_dir, "train")
     valid_path = pjoin(args.source_dir, "val")
     test_path = pjoin(args.source_dir, "test")
 
-    create_vocabulary(vocab_path,
+    create_vocabulary(vocab_path, emotion_vocab_path,
                       [pjoin(args.source_dir, "train.from"),
                        pjoin(args.source_dir, "train.to"),
                        pjoin(args.source_dir, "val.to"),
                        pjoin(args.source_dir, "val.from"),
-                       ])
-    vocab, rev_vocab = initialize_vocabulary(pjoin(args.vocab_dir, "vocab.dat"))
+                       ], threshold=args.word_cnt_threshold)
+    non_emotion_size, vocab, rev_vocab = initialize_vocabulary(pjoin(args.vocab_dir, "vocab.dat"))
 
     process_glove(args, rev_vocab, args.source_dir + "/glove.trimmed.{}".format(args.glove_dim),
                     random_init=args.random_init)

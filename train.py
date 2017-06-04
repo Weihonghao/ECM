@@ -148,7 +148,7 @@ def train():
     embeddings = utils.load_glove_embeddings(embed_path)
 
     vocab_path = FLAGS.vocab_path or pjoin(FLAGS.data_dir, "vocab.dat")
-    vocab, rev_vocab = preprocess_data.initialize_vocabulary(vocab_path)
+    non_emotion_size, vocab, rev_vocab = preprocess_data.initialize_vocabulary(vocab_path)
     FLAGS.vocab_size = len(vocab)
     print(embeddings.shape[0], len(vocab))
     assert embeddings.shape[0] == len(vocab)
@@ -263,7 +263,7 @@ def decode():
 
         # Load vocabularies.
         vocab_path = FLAGS.vocab_path or pjoin(FLAGS.data_dir, "vocab.dat")
-        en_vocab, rev_fr_vocab = preprocess_data.initialize_vocabulary(vocab_path)
+        non_emotion_size, en_vocab, rev_fr_vocab = preprocess_data.initialize_vocabulary(vocab_path)
         FLAGS.vocab_size = len(en_vocab)
         print("embeddings.shape[0]: " + str(embeddings.shape[0]))
         print("len(en_vocab):" + str(len(en_vocab)))
