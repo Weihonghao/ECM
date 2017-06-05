@@ -232,7 +232,9 @@ class ECMModel(object):
         attention_mechanism = tf.contrib.seq2seq.LuongAttention(self.decoder_state_size, encoder_outputs)
         decoder_outputs_ta, decoder_final_state, _ = tf.nn.raw_rnn(decode_cell, loop_fn)
         decoder_outputs = decoder_outputs_ta.stack()
-        return decoder_outputs
+        decoder_max_steps, decoder_batch_size, decoder_dim = tf.unstack(tf.shape(decoder_outputs))
+        decoder_outputs_reshape = tf.reshape(decoder_outputs, (decoder_batch_size,decoder_max_steps , decoder_dim))
+        return decoder_outputs_reshape
 
     def external_memory_function(self, decode_state):  # decode_output, shape[batch_size,vocab_size]
 
