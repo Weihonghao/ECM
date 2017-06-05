@@ -175,10 +175,6 @@ class ECMModel(object):
                 logging.debug('next_input: %s' % str(next_input))
                 return next_input
 
-
-            def returnPad(x):
-                return x
-
             elements_finished = (time >= decoder_length)  # this operation produces boolean tensor of [batch_size]
             # defining if corresponding sequence has ended
             finished = tf.reduce_all(elements_finished)  # -> boolean scalar
@@ -189,11 +185,15 @@ class ECMModel(object):
             inputNow = tf.cond(finished, lambda : pad_step_embedded, get_next_input)
             logging.debug('inputNow: %s' % str(inputNow))
             logging.debug('previous_state: %s' % str(previous_state))
-            output, state = decode_cell(inputNow, previous_state)
             loop_state = None
+            output = previous_output
+            state = previous_state
+            #output, state = decode_cell(inputNow, previous_state)
 
-            write_gate = tf.sigmoid(tf.layers.dense(state, self.IM_size, name="write_gate"))
-            self.internalMemory[self.emotion_tag] = self.internalMemory[self.emotion_tag] * write_gate
+
+            #write_gate = tf.sigmoid(tf.layers.dense(state, self.IM_size, name="write_gate"))
+            #change_IM = tf.nn.embedding_lookup(self.internalMemory,self.emotion_tag)
+            #change_IM = change_IM * write_gate
 
             return (elements_finished,
                     inputNow,
