@@ -62,6 +62,12 @@ class ECMModel(object):
         self.LQ = tf.placeholder(dtype=tf.int32, name='LQ', shape=())  # batch
         self.LA = tf.placeholder(dtype=tf.int32, name='LA', shape=())  # batch
 
+        with tf.variable_scope("ecm", initializer=tf.contrib.layers.xavier_initializer()):
+            self.setup_embeddings()
+            self.setup_system()
+
+
+    def setup_embeddings(self):
         with tf.variable_scope("embeddings"):
             if self.config.retrain_embeddings:  # whether to cotrain word embedding
                 embeddings = tf.Variable(self.embeddings, name="Emb", dtype=tf.float32)
@@ -72,6 +78,7 @@ class ECMModel(object):
             self.q = tf.reshape(question_embeddings, shape=[-1, self.LQ, self.config.embedding_size])
             answer_embeddings = tf.nn.embedding_lookup(embeddings, self.answer)
             self.a = tf.reshape(answer_embeddings, shape=[-1, self.LA, self.config.embedding_size])
+        
 
     def encode(self, inputs, sequence_length, encoder_state_input, dropout=1.0):
         """
@@ -278,15 +285,7 @@ class ECMModel(object):
 
         return feed_dict
 
-    def train(self, sess, training_set):
-
-
-        question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
-        tag_batch = map(lambda x: x[0],tag_batch)
-        input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
-                                           answer_len_batch, is_train=True)
-
-
+    def setup_system(self):
         def emotion_distribution(decode_outputs):
             decode_outputs = tf.reshape(decode_outputs, [-1,decode_outputs.get_shape().as_list()[2]])
             ids = self.external_memory_function(decode_outputs)
@@ -307,20 +306,21 @@ class ECMModel(object):
                                                             labels=tf.cast(emotion_label, dtype=tf.float32))
             loss += 2 * tf.nn.l2_loss(self.internalMemory)
             return loss
-
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
         results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
-        tfloss = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(loss(results))
-        logging.debug('tag batcg: %s' % str(tag_batch))
-        return sess.run(tfloss, feed_dict=input_feed)
+        self.tfloss = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(loss(results))
+        self.tfids = tf.argmax(results, axis=1)
+
+    def train(self, sess, training_set):
+        question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
+        tag_batch = map(lambda x: x[0],tag_batch)
+        input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
+                                           answer_len_batch, is_train=True)
+        return sess.run(self.tfloss, feed_dict=input_feed)
 
     def test(self, sess, test_set):
         question_batch, question_len_batch, tag_batch = test_set
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch=None,
                                            answer_len_batch=None, is_train=False)
-
-        encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
-        results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
-        tfids = tf.argmax(results, axis=1)
-        ids = sess.run(tfids, feed_dict=input_feed)
+        ids = sess.run(self.tfids, feed_dict=input_feed)
         return [self.id2word[id] for each in ids]
