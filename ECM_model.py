@@ -103,20 +103,22 @@ class ECMModel(object):
         hidden_state = tf.concat([outputs_fw, outputs_bw], 2)
         logging.debug('Concatenated bi-LSTM hidden state: %s' % str(hidden_state))
         # final_state_fw and final_state_bw are the final states of the forwards/backwards LSTM
-        concat_final_state = tf.concat([final_state_fw, final_state_bw], 1)
+	print("encode output ", final_state_fw[1].get_shape())
+        concat_final_state = tf.concat([final_state_fw[1], final_state_bw[1]], 1)
         logging.debug('Concatenated bi-LSTM final hidden state: %s' % str(concat_final_state))
         return hidden_state, concat_final_state
 
     def decode(self, encoder_outputs, encoder_final_state, decoder_length):
-
+        print('decode start')
         # initialize first decode state
         def loop_fn_initial():
             initial_elements_finished = (0 >= decoder_length)  # all False at the initial step
-            GO_emb = tf.ones([batch_size], dtype=tf.int32, name='GO')
+            GO_emb = tf.ones([self.batch_size], dtype=tf.int32, name='GO')
             initial_input = tf.nn.embedding_lookup(self.embeddings, GO_emb)
             initial_cell_state = encoder_final_state
             initial_cell_output = None
             initial_loop_state = None  # we don't need to pass any additional information
+            print('before return initial')
             return (initial_elements_finished,
                     initial_input,
                     initial_cell_state,
@@ -125,7 +127,9 @@ class ECMModel(object):
 
         def loop_fn_transition(time, previous_output, previous_state, previous_loop_state):
             # get next state
+            print('in trans')
             def get_next_input():
+		print('in get next input')
                 previous_output_id = self.external_memory_function(previous_output)
                 previous_output_vector = tf.nn.embedding_lookup(self.embeddings, previous_output_id)
                 score = attention_mechanism(previous_state)
