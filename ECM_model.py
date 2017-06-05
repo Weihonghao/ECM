@@ -149,7 +149,9 @@ class ECMModel(object):
                 previous_output_vector = tf.nn.embedding_lookup(self.embeddings, previous_output_id)
                 score = attention_mechanism(previous_state)
                 weights = tf.nn.softmax(score)
+                print("here")
                 context = tf.matmul(weights, attention_mechanism.values)
+                print("here1")
                 attention = tf.layers.dense(inputs=tf.concat([previous_output_vector, context], 1), units=self.IM_size)
                 read_gate = tf.sigmoid(attention, name="read_gate")
                 next_input = tf.concat(
