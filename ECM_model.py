@@ -234,7 +234,7 @@ class ECMModel(object):
             loss += 2 * tf.nn.l2_loss(self.internalMemory)
             return loss
 
-        encoder_outputs, encoder_final_state = self.encode(self.question, self.question_len, None, self.dropout_placeholder)
+        encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
         results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
         tfloss = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(loss(results))
         return sess.run(tfloss, feed_dict=input_feed)
@@ -244,7 +244,7 @@ class ECMModel(object):
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch=None,
                                            answer_len_batch=None, is_train=False)
 
-        encoder_outputs, encoder_final_state = self.encode(self.question, self.question_len, None, self.dropout_placeholder)
+        encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
         results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
         tfids = tf.argmax(results, axis= 1)
         ids = sess.run(tfids, feed_dict=input_feed)
