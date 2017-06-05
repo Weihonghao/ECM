@@ -312,7 +312,7 @@ class ECMModel(object):
 
 
             EM_ids, EM_output = self.external_memory_function(tf.reshape(results,[-1,self.decoder_state_size]))
-            EM_ids = tf.reshape(EM_ids,[self.batch_size,-1])
+            #EM_ids = tf.reshape(EM_ids,[self.batch_size,-1])
             #EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
             logging.debug('logits: %s' % str(EM_output))
             logging.debug('labels: %s' % str(answer_one_hot))
@@ -321,7 +321,7 @@ class ECMModel(object):
             tmp = tf.nn.softmax_cross_entropy_with_logits(logits=EM_output, labels=answer_one_hot)
             logging.debug('tmp loss 1: %s' % str(tmp))
             loss = tf.reduce_sum(tmp) # self.vocab_label)
-            print("loss 1 ptint ", loss)
+            '''print("loss 1 ptint ", loss)
             emotion_label = tf.cast((self.answer < (self.emotion_size)), dtype=tf.float32)
             emotion_logit = tf.cast((EM_ids < (self.emotion_size)), dtype=tf.float32)
 
@@ -336,10 +336,11 @@ class ECMModel(object):
             print("loss 2 ptint ", loss)
             loss += 2 * tf.nn.l2_loss(self.internalMemory)
             print("loss 3 ptint ", loss)
-            logging.debug('loss: %s' % str(loss))
+            logging.debug('loss: %s' % str(loss))'''
             return loss
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
         results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
+        logging.debug('results: %s' % str(results))
         self.tfloss = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(loss(results))
         self.tfids = tf.argmax(results, axis=1)
 
