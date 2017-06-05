@@ -38,6 +38,7 @@ class ECMModel(object):
         self.decoder_state_size = magic_number
         self.encoder_state_size = int(self.decoder_state_size / 2)
         self.pad_step_embedded = tf.zeros([self.batch_size, self.decoder_state_size * 2 + config.embedding_size])
+        self.go_step_embedded = tf.ones([self.batch_size, self.decoder_state_size * 2 + config.embedding_size])
 
         self.emotion_kind = 6
         self.GO_id = 1
@@ -129,8 +130,8 @@ class ECMModel(object):
         # initialize first decode state
         def loop_fn_initial():
             initial_elements_finished = (0 >= decoder_length)  # all False at the initial step
-            GO_emb = tf.ones([self.batch_size], dtype=tf.int32, name='GO')
-            initial_input = tf.nn.embedding_lookup(self.embeddings, GO_emb)
+            #GO_emb = tf.ones([self.batch_size], dtype=tf.int32, name='GO')
+            initial_input = self.go_step_embedded#tf.nn.embedding_lookup(self.embeddings, GO_emb)
             initial_cell_state = encoder_final_state
             initial_cell_output = None
             initial_loop_state = None  # we don't need to pass any additional information
