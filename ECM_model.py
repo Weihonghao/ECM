@@ -242,8 +242,10 @@ class ECMModel(object):
         print('flag2')
         emotion_num = self.emotion_size
         print('flag3')
-        return tf.argmax(tf.concat([gto * decode_output[:,:, :emotion_num], (1 - gto) * decode_output[:,:, emotion_num:]],
+        arg = tf.argmax(tf.concat([gto * decode_output[:,:, :emotion_num], (1 - gto) * decode_output[:,:, emotion_num:]],
                                    -1), axis=-1)  # [batch_size,1]
+        logging.debug('arg: %s' % str(arg))
+        return arg
 
 
     def create_feed_dict(self, question_batch, question_len_batch, emotion_tag_batch, answer_batch=None,
