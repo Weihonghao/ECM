@@ -354,7 +354,7 @@ class ECMModel(object):
 
     def test(self, sess, test_set):
         print(len(test_set))
-        question_batch, question_len_batch, tag_batch = test_set
+        question_batch, question_len_batch, tag_batch, _, _ = test_set
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch=None,
                                            answer_len_batch=None, is_train=False)
         ids = sess.run(self.tfids, feed_dict=input_feed)
