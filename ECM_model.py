@@ -28,7 +28,7 @@ class ECMModel(object):
         if (self.config.vocab_size % 2 == 1):
             self.decoder_state_size = config.vocab_size + 1
             print (len(self.id2word))
-            id2word[config.vocab_size] = 'NULL'
+            id2word.append('NULL')
         else:
             self.decoder_state_size = config.vocab_size
         self.emotion_size = 6
