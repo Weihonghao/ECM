@@ -281,6 +281,7 @@ class ECMModel(object):
         question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
                                            answer_len_batch, is_train=True)
+        print('fuck here', tag_batch.shape)
 
         def emotion_distribution(decode_outputs):
             decode_outputs = tf.reshape(decode_outputs, [-1,decode_outputs.get_shape().as_list()[2]])
