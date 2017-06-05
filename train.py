@@ -149,6 +149,7 @@ def train():
             #print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
             model = ECM_model.ECMModel(embeddings, rev_vocab, FLAGS)
             initialize_model(sess, model)
+            sess.run([tf.global_variables_initializer(),tf.local_variables_initializer()])
             '''tmpModel = initialize_model(sess, model)
             if tmpModel is not None:
                 model = tmpModel'''
