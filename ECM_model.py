@@ -87,7 +87,7 @@ class ECMModel(object):
         logging.debug('Inputs: %s' % str(inputs))
         # Get lstm cell output
         print(inputs.get_shape())
-	(outputs_fw, outputs_bw), (final_state_fw, final_state_bw) = tf.nn.bidirectional_dynamic_rnn(
+        (outputs_fw, outputs_bw), (final_state_fw, final_state_bw) = tf.nn.bidirectional_dynamic_rnn(
             cell_fw=lstm_fw_cell,
             cell_bw=lstm_bw_cell,
             inputs=inputs,
@@ -112,7 +112,8 @@ class ECMModel(object):
         # initialize first decode state
         def loop_fn_initial():
             initial_elements_finished = (0 >= decoder_length)  # all False at the initial step
-            initial_input = self.GO_id
+            GO_emb = tf.ones([batch_size], dtype=tf.int32, name='GO')
+            initial_input = tf.nn.embedding_lookup(self.embeddings, GO_emb)
             initial_cell_state = encoder_final_state
             initial_cell_output = None
             initial_loop_state = None  # we don't need to pass any additional information
@@ -156,8 +157,10 @@ class ECMModel(object):
         def loop_fn(time, previous_output, previous_state, previous_loop_state):
             if previous_state is None:  # time == 0
                 assert previous_output is None and previous_state is None
+                print("initialii******")
                 return loop_fn_initial()
             else:
+                print("trainsition******")
                 return loop_fn_transition(time, previous_output, previous_state, previous_loop_state)
 
         decode_cell = tf.contrib.rnn.GRUCell(self.decoder_state_size)
