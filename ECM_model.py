@@ -283,6 +283,7 @@ class ECMModel(object):
                                            answer_len_batch, is_train=True)
 
         def emotion_distribution(decode_outputs):
+            decode_outputs = tf.reshape(decode_outputs, [-1,decode_outputs.get_shape().as_list()[2]])
             ids = self.external_memory_function(decode_outputs)
             return tf.cast((ids < (self.emotion_size)), dtype=tf.int64)
 
