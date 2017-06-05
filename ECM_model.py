@@ -175,13 +175,17 @@ class ECMModel(object):
                 logging.debug('next_input: %s' % str(next_input))
                 return next_input
 
+
+            def returnPad():
+                return pad_step_embedded
+
             elements_finished = (time >= decoder_length)  # this operation produces boolean tensor of [batch_size]
             # defining if corresponding sequence has ended
             finished = tf.reduce_all(elements_finished)  # -> boolean scalar
             pad_step_embedded = tf.nn.embedding_lookup(self.embeddings, self.pad_id)  ## undefined
             logging.debug('finished: %s' % str(finished))
             logging.debug('pad_step_embedded: %s' % str(pad_step_embedded))
-            input = tf.cond(finished, pad_step_embedded, get_next_input())
+            input = tf.cond(finished, returnPad(), get_next_input())
             logging.debug('input: %s' % str(input))
             logging.debug('previous_state: %s' % str(previous_state))
             output, state = decode_cell(input, previous_state)
