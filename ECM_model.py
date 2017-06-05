@@ -296,10 +296,10 @@ class ECMModel(object):
             emotion_label = tf.cast((self.answer < (self.emotion_size)), dtype=tf.int64)
 
 
-            logging.debug('logits: %s' % str(emotion_distribution(results)))
-            logging.debug('labels: %s' % str(emotion_label))
-            loss += tf.nn.softmax_cross_entropy_with_logits(logits=emotion_distribution(results),
-                                                            labels=emotion_label)
+            #logging.debug('logits: %s' % str(emotion_distribution(results)))
+            #logging.debug('labels: %s' % str(emotion_label))
+            loss += tf.nn.softmax_cross_entropy_with_logits(logits=tf.cast(emotion_distribution(results), dtype=tf.float32),
+                                                            labels=tf.cast(emotion_label, dtype=tf.float32))
             loss += 2 * tf.nn.l2_loss(self.internalMemory)
             return loss
 
