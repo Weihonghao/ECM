@@ -182,6 +182,8 @@ class ECMModel(object):
             logging.debug('finished: %s' % str(finished))
             logging.debug('pad_step_embedded: %s' % str(pad_step_embedded))
             input = tf.cond(finished, lambda: pad_step_embedded, get_next_input)
+            logging.debug('input: %s' % str(input))
+            logging.debug('previous_state: %s' % str(previous_state))
             output, state = decode_cell(input, previous_state)
             loop_state = None
 
