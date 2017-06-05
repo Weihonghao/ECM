@@ -343,7 +343,7 @@ class ECMModel(object):
         logging.debug('results: %s' % str(results))
         self.tfloss = loss(results)
         self.train_op = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(self.tfloss)
-        self.tfids = tf.argmax(results, axis=1)
+        self.tfids = tf.argmax(results, axis=2)
 
     def train(self, sess, training_set):
         question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
@@ -353,9 +353,9 @@ class ECMModel(object):
         return sess.run([self.train_op, self.tfloss], feed_dict=input_feed)
 
     def test(self, sess, test_set):
-        print(len(test_set))
+        #print(len(test_set))
         question_batch, question_len_batch, tag_batch, _, _ = test_set
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch=None,
                                            answer_len_batch=None, is_train=False)
         ids = sess.run(self.tfids, feed_dict=input_feed)
-        return [self.id2word[id] for each in ids]
+        return [[self.id2word[each] for each in each_list] for each_list in ids]
