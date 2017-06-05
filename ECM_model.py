@@ -167,7 +167,8 @@ class ECMModel(object):
                 change_IM = tf.nn.embedding_lookup(self.internalMemory,self.emotion_tag)
                 change_IM = change_IM * write_gate'''
 
-                previous_output_id = self.external_memory_function(previous_output)[0]#tf.reshape(self.external_memory_function(previous_output), [self.batch_size])
+                tmp_id, _ = self.external_memory_function(previous_output)
+                previous_output_id = tmp_id#tf.reshape(self.external_memory_function(previous_output), [self.batch_size])
                 previous_output_vector = tf.nn.embedding_lookup(self.embeddings, previous_output_id)
                 score = attention_mechanism(previous_state)
                 weights = tf.nn.softmax(score)
@@ -246,7 +247,7 @@ class ECMModel(object):
         arg = tf.argmax(tf.concat([gto * decode_output[:,:emotion_num], (1 - gto) * decode_output[:, emotion_num:]],
                                    1), axis=1)  # [batch_size,1]
         logging.debug('arg: %s' % str(arg))
-        return (arg, decode_output)
+        return arg, decode_output
 
 
     def create_feed_dict(self, question_batch, question_len_batch, emotion_tag_batch, answer_batch=None,
