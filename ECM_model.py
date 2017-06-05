@@ -15,6 +15,8 @@ import numpy as np
 
 class ECMModel(object):
     def __init__(self, embeddings, id2word, config):
+        magic_number = 256
+        assert  (magic_number%2 == 0)
         self.embeddings = tf.cast(embeddings, dtype=tf.float32)
         # self.vocab_label = vocab_label  # label for vocab
         # self.emotion_label = emotion_label  # label for emotion
@@ -25,12 +27,15 @@ class ECMModel(object):
         self.non_emotion_size = config.non_emotion_size
         self.emotion_size = self.vocab_size - self.non_emotion_size
         self.id2word = id2word
-        if (self.config.vocab_size % 2 == 1):
+
+        '''if (self.config.vocab_size % 2 == 1):
             self.decoder_state_size = config.vocab_size + 1
             print (len(self.id2word))
             id2word.append('NULL')
         else:
-            self.decoder_state_size = config.vocab_size
+            self.decoder_state_size = config.vocab_size'''
+
+        self.decoder_state_size = magic_number
         self.encoder_state_size = int(self.decoder_state_size / 2)
         self.emotion_size = 6
         self.GO_id = 1
@@ -156,6 +161,8 @@ class ECMModel(object):
                 logging.debug('attention_mechanism.values: %s' % str(attention_mechanism.values))
                 context = tf.matmul(weights, attention_mechanism.values)
                 print("here1")
+                logging.debug('previous_output_vector: %s' % str(previous_output_vector))
+                logging.debug('context: %s' % str(context))
                 attention = tf.layers.dense(inputs=tf.concat([previous_output_vector, context], 1), units=self.IM_size)
                 read_gate = tf.sigmoid(attention, name="read_gate")
                 next_input = tf.concat(
