@@ -15,7 +15,7 @@ import numpy as np
 
 class ECMModel(object):
     def __init__(self, embeddings, id2word, config):
-        self.embeddings = embeddings
+        self.embeddings = tf.cast(embeddings, dtype=tf.float32)
         # self.vocab_label = vocab_label  # label for vocab
         # self.emotion_label = emotion_label  # label for emotion
         self.config = config
