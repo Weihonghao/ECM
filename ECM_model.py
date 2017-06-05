@@ -297,7 +297,7 @@ class ECMModel(object):
             logging.debug('labels: %s' % str(self.answer))
             answer_all = tf.reshape(self.a, [-1,self.config.embedding_size])
             results = tf.reshape(results, [-1,results.get_shape().as_list()[2]])
-            results = self.external_memory_function(results)
+            results = tf.cast(self.external_memory_function(results), dtype=tf.float32)
 
             logging.debug('logits: %s' % str(results))
             logging.debug('labels: %s' % str(answer_all))
