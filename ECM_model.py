@@ -48,7 +48,7 @@ class ECMModel(object):
         self.internalMemory = tf.get_variable("IMFuck", shape=[self.emotion_kind, self.IM_size],
                                               initializer=tf.contrib.layers.xavier_initializer())
 
-        self.vu = tf.get_variable("vu", shape=[1, self.decoder_state_size, 1], initializer=tf.contrib.layers.xavier_initializer())
+        self.vu = tf.get_variable("vu", shape=[self.decoder_state_size, 1], initializer=tf.contrib.layers.xavier_initializer())
 
 
         # self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True))
@@ -167,7 +167,7 @@ class ECMModel(object):
                 change_IM = tf.nn.embedding_lookup(self.internalMemory,self.emotion_tag)
                 change_IM = change_IM * write_gate'''
 
-                previous_output_id = tf.reshape(self.external_memory_function(previous_output), [self.batch_size])
+                previous_output_id = self.external_memory_function(previous_output)#tf.reshape(self.external_memory_function(previous_output), [self.batch_size])
                 previous_output_vector = tf.nn.embedding_lookup(self.embeddings, previous_output_id)
                 score = attention_mechanism(previous_state)
                 weights = tf.nn.softmax(score)
@@ -233,17 +233,17 @@ class ECMModel(object):
         decoder_outputs = decoder_outputs_ta.stack()
         return decoder_outputs
 
-    def external_memory_function(self, in_decode_output):  # decode_output, shape[batch_size,,max_len(possible),vocab_size]
+    def external_memory_function(self, decode_output):  # decode_output, shape[batch_size,vocab_size]
 
 
         print('flag1')
-        decode_output = tf.reshape(in_decode_output, [self.batch_size,-1,self.decoder_state_size])
-        gto = tf.sigmoid(tf.reduce_sum(tf.matmul(decode_output, self.vu), axis = -1))
+        #decode_output = tf.reshape(in_decode_output, [self.batch_size,-1,self.decoder_state_size])
+        gto = tf.sigmoid(tf.reduce_sum(tf.matmul(decode_output, self.vu)))
         print('flag2')
         emotion_num = self.emotion_size
         print('flag3')
-        arg = tf.argmax(tf.concat([gto * decode_output[:,:, :emotion_num], (1 - gto) * decode_output[:,:, emotion_num:]],
-                                   -1), axis=-1)  # [batch_size,1]
+        arg = tf.argmax(tf.concat([gto * decode_output[:,:emotion_num], (1 - gto) * decode_output[:, emotion_num:]],
+                                   1), axis=1)  # [batch_size,1]
         logging.debug('arg: %s' % str(arg))
         return arg
 
@@ -311,10 +311,10 @@ class ECMModel(object):
 
             loss = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels=answer_one_hot)  # self.vocab_label)
             emotion_label = tf.cast((self.answer < (self.emotion_size)), dtype=tf.float32)
-            emotion_logit = tf.cast((emotion_distribution(results) < (self.emotion_size)), dtype=tf.float32)
+            emotion_logit = tf.cast((tf.reshape(emotion_distribution(tf.reshape(results,[-1,self.decoder_state_size])),[self.batch_size,-1]) < (self.emotion_size)), dtype=tf.float32)
 
-            #logging.debug('logits: %s' % str(emotion_distribution(results)))
-            #logging.debug('labels: %s' % str(emotion_label))
+            logging.debug('emotion logits: %s' % str(emotion_logit))
+            logging.debug('emotion labels: %s' % str(emotion_label))
             loss += tf.nn.softmax_cross_entropy_with_logits(logits=tf.cast(emotion_logit, dtype=tf.float32),
                                                             labels=tf.cast(emotion_label, dtype=tf.float32))
             loss += 2 * tf.nn.l2_loss(self.internalMemory)
