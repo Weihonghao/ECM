@@ -18,11 +18,11 @@ def get_line_number(file_path):
     return lines
 if __name__ == '__main__':
 	threshold = 0.5
-	out = open("data/emotion_vocab.txt",'w')
+	out = open("/commuter/chatbot/Commuter/data/emotion_vocab.txt",'w')
 	emotion_word_set = set()
-	line_number = get_line_number('question.txt')
+	line_number = get_line_number('/commuter/chatbot/Commuter/question.txt')
 	print(line_number)
-	f = open("question.txt",'r')
+	f = open("/commuter/chatbot/Commuter/question.txt",'r')
 	for line in tqdm(f, total=line_number):#f.readlines():
 		line = line.strip().split()
 		for each in line:
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 	f.close()
 
 	#emotion_word_set = set()
-	f = open("answer.txt",'r')
+	f = open("/commuter/chatbot/Commuter/answer.txt",'r')
 	for line in tqdm(f, total=line_number):#f.readlines():
 		'''line = line.strip()
 		if whetherEmotion(line, threshold):

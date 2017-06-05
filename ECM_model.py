@@ -22,7 +22,7 @@ class ECMModel(object):
         self.vocab_size = config.vocab_size
         self.non_emotion_size = config.non_emotion_size
         self.emotion_size = self.vocab_size - self.non_emotion_size
-        self.encoder_state_size = config.vocab_size / 2
+        self.encoder_state_size = int(config.vocab_size / 2)
         self.decoder_state_size = config.vocab_size
         self.emotion_size = 6
         self.GO_id = 1
@@ -83,7 +83,7 @@ class ECMModel(object):
         initial_state_bw = None
         if encoder_state_input is not None:
             initial_state_fw, initial_state_bw = encoder_state_input
-
+        logging.debug('sequence_length: %s' % str(sequence_length))
         logging.debug('Inputs: %s' % str(inputs))
         # Get lstm cell output
         print(inputs.get_shape())
