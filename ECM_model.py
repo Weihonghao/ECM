@@ -56,7 +56,7 @@ class ECMModel(object):
         self.question_len = tf.placeholder(tf.int32, shape=[None], name='question_len')
         self.answer = tf.placeholder(tf.int32, shape=[None, None], name='answer')
         self.answer_len = tf.placeholder(tf.int32, shape=[None], name='answer_len')
-        self.emotion_tag = tf.placeholder(tf.int32, shape=[None], name='emotion_tag')
+        self.emotion_tag = tf.placeholder(tf.int32, shape=[None,1], name='emotion_tag')
         self.dropout_placeholder = tf.placeholder(dtype=tf.float32, name="dropout", shape=())
         self.LQ = tf.placeholder(dtype=tf.int32, name='LQ', shape=())  # batch
         self.LA = tf.placeholder(dtype=tf.int32, name='LA', shape=())  # batch
@@ -307,7 +307,7 @@ class ECMModel(object):
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
         results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
         tfloss = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(loss(results))
-        logging.debug('tag batcg: %s' % str(tag_batch))
+        #logging.debug('tag batcg: %s' % str(tag_batch))
         return sess.run(tfloss, feed_dict=input_feed)
 
     def test(self, sess, test_set):
