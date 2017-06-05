@@ -286,17 +286,22 @@ class ECMModel(object):
         return feed_dict
 
     def setup_system(self):
-        def emotion_distribution(decode_outputs):
-            decode_outputs = tf.reshape(decode_outputs, [-1,decode_outputs.get_shape().as_list()[2]])
-            ids = self.external_memory_function(decode_outputs)
-            return tf.cast((ids < (self.emotion_size)), dtype=tf.int64)
+        def emotion_distribution(decode_outputs_ids):
+
+            return tf.cast((decode_outputs_ids < (self.emotion_size)), dtype=tf.int64)
 
         def loss(results):
 
 
             logging.debug('logits: %s' % str(results))
             logging.debug('labels: %s' % str(self.answer))
-            loss = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels=self.answer)  # self.vocab_label)
+            answer_all = tf.reshape(self.a, [-1,self.config.embedding_size])
+            results = tf.reshape(results, [-1,results.get_shape().as_list()[2]])
+            results = self.external_memory_function(results)
+
+
+
+            loss = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels=answer_all)  # self.vocab_label)
             emotion_label = tf.cast((self.answer < (self.emotion_size)), dtype=tf.int64)
 
 
