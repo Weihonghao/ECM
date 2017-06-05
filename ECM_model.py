@@ -12,11 +12,12 @@ import preprocess_data
 import tensorflow as tf
 import numpy as np
 
+
 class ECMModel(object):
     def __init__(self, embeddings, id2word, config):
         self.embeddings = embeddings
-        #self.vocab_label = vocab_label  # label for vocab
-        #self.emotion_label = emotion_label  # label for emotion
+        # self.vocab_label = vocab_label  # label for vocab
+        # self.emotion_label = emotion_label  # label for emotion
         self.config = config
         self.batch_size = config.batch_size
         self.vocab_size = config.vocab_size
@@ -31,10 +32,10 @@ class ECMModel(object):
         self.internalMemory = tf.get_variable("IM", shape=[self.emotion_size, self.IM_size],
                                               initializer=tf.contrib.layers.xavier_initializer())
 
-        self.vu = tf.get_variable("vu", shape=[self.vocab_size,1], initializer=tf.contrib.layers.xavier_initializer())
+        self.vu = tf.get_variable("vu", shape=[self.vocab_size, 1], initializer=tf.contrib.layers.xavier_initializer())
 
         self.id2word = id2word
-        #self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True))
+        # self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True))
 
         self.question = tf.placeholder(tf.int32, shape=[None, None], name='question')
         self.question_len = tf.placeholder(tf.int32, shape=[None], name='question_len')
@@ -103,13 +104,14 @@ class ECMModel(object):
         hidden_state = tf.concat([outputs_fw, outputs_bw], 2)
         logging.debug('Concatenated bi-LSTM hidden state: %s' % str(hidden_state))
         # final_state_fw and final_state_bw are the final states of the forwards/backwards LSTM
-	print("encode output ", final_state_fw[1].get_shape())
+        print("encode output ", final_state_fw[1].get_shape())
         concat_final_state = tf.concat([final_state_fw[1], final_state_bw[1]], 1)
         logging.debug('Concatenated bi-LSTM final hidden state: %s' % str(concat_final_state))
         return hidden_state, concat_final_state
 
     def decode(self, encoder_outputs, encoder_final_state, decoder_length):
         print('decode start')
+
         # initialize first decode state
         def loop_fn_initial():
             initial_elements_finished = (0 >= decoder_length)  # all False at the initial step
@@ -119,6 +121,12 @@ class ECMModel(object):
             initial_cell_output = None
             initial_loop_state = None  # we don't need to pass any additional information
             print('before return initial')
+            logging.debug('initial_elements_finished: %s' % str(initial_elements_finished))
+            logging.debug('initial_input: %s' % str(initial_input))
+            logging.debug('initial_cell_state: %s' % str(initial_cell_state))
+            logging.debug('initial_cell_output: %s' % str(initial_cell_output))
+            logging.debug('initial_loop_state: %s' % str(initial_loop_state))
+
             return (initial_elements_finished,
                     initial_input,
                     initial_cell_state,
@@ -128,8 +136,9 @@ class ECMModel(object):
         def loop_fn_transition(time, previous_output, previous_state, previous_loop_state):
             # get next state
             print('in trans')
+
             def get_next_input():
-		print('in get next input')
+                print('in get next input')
                 previous_output_id = self.external_memory_function(previous_output)
                 previous_output_vector = tf.nn.embedding_lookup(self.embeddings, previous_output_id)
                 score = attention_mechanism(previous_state)
@@ -137,9 +146,9 @@ class ECMModel(object):
                 context = tf.matmul(weights, attention_mechanism.values)
                 attention = tf.layers.dense(inputs=tf.concat([previous_output_vector, context], 1), units=self.IM_size)
                 read_gate = tf.sigmoid(attention, name="read_gate")
-                next_input = tf.concat([context, previous_output_vector, read_gate * self.internalMemory[self.emotion_tag]], 1)
+                next_input = tf.concat(
+                    [context, previous_output_vector, read_gate * self.internalMemory[self.emotion_tag]], 1)
                 return next_input
-
 
             elements_finished = (time >= decoder_length)  # this operation produces boolean tensor of [batch_size]
             # defining if corresponding sequence has ended
@@ -179,7 +188,7 @@ class ECMModel(object):
 
         gto = tf.sigmoid(tf.reduce_sum(tf.multiply(decode_output, self.vu)))
         emotion_num = self.emotion_size
-        return tf.argmax(tf.concat([gto * decode_output[:,:emotion_num], (1 - gto) * decode_output[:, emotion_num:]],
+        return tf.argmax(tf.concat([gto * decode_output[:, :emotion_num], (1 - gto) * decode_output[:, emotion_num:]],
                                    1), axis=1)  # [batch_size,1]
 
     def create_feed_dict(self, question_batch, question_len_batch, emotion_tag_batch, answer_batch=None,
@@ -202,13 +211,12 @@ class ECMModel(object):
                 padded_data.append(d)
             return padded_data
 
-
         feed_dict[self.question_len] = question_len_batch
         feed_dict[self.LQ] = LQ
         feed_dict[self.emotion_tag] = emotion_tag_batch
         padded_question = padding_batch(question_batch, LQ)
         print("padding question size ", np.array(padded_question).shape)
-	feed_dict[self.question] = padded_question
+        feed_dict[self.question] = padded_question
 
         if is_train:
             assert answer_batch is not None
@@ -224,7 +232,7 @@ class ECMModel(object):
 
         return feed_dict
 
-    def train(self, sess,  training_set):
+    def train(self, sess, training_set):
         question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
                                            answer_len_batch, is_train=True)
@@ -234,10 +242,10 @@ class ECMModel(object):
             return tf.cast((ids < (self.emotion_size)), dtype=tf.int64)
 
         def loss(results):
-            loss = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels= self.answer)#self.vocab_label)
+            loss = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels=self.answer)  # self.vocab_label)
             emotion_label = tf.cast((self.answer < (self.emotion_size)), dtype=tf.int64)
             loss += tf.nn.softmax_cross_entropy_with_logits(logits=emotion_distribution(results),
-                                                            labels= emotion_label)
+                                                            labels=emotion_label)
             loss += 2 * tf.nn.l2_loss(self.internalMemory)
             return loss
 
@@ -253,6 +261,6 @@ class ECMModel(object):
 
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
         results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
-        tfids = tf.argmax(results, axis= 1)
+        tfids = tf.argmax(results, axis=1)
         ids = sess.run(tfids, feed_dict=input_feed)
         return [self.id2word[id] for each in ids]
