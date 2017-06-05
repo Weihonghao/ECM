@@ -37,6 +37,8 @@ class ECMModel(object):
 
         self.decoder_state_size = magic_number
         self.encoder_state_size = int(self.decoder_state_size / 2)
+        self.pad_step_embedded = tf.constant(tf.zeros([self.batch_size, self.decoder_state_size * 2 + self.emotion_size]))
+
         self.emotion_size = 6
         self.GO_id = 1
         self.pad_id = 0
@@ -184,7 +186,8 @@ class ECMModel(object):
             # defining if corresponding sequence has ended
             finished = tf.reduce_all(elements_finished)  # -> boolean scalar
 
-            pad_step_embedded = tf.nn.embedding_lookup(self.embeddings, self.pad_id)  ## undefined
+            #pad_step_embedded = tf.nn.embedding_lookup(self.embeddings, self.pad_id)  ## undefined
+            pad_step_embedded = self.pad_step_embedded
             logging.debug('finished: %s' % str(finished))
             logging.debug('pad_step_embedded: %s' % str(pad_step_embedded))
             inputNow = tf.cond(finished, lambda : pad_step_embedded, get_next_input)
