@@ -305,6 +305,7 @@ class ECMModel(object):
 
             answer_one_hot = tf.one_hot(indices= self.answer, depth= self.vocab_size, on_value= 1, off_value=0,axis=-1)#, dtype=tf.float32)
             answer_one_hot = tf.cast(answer_one_hot, dtype=tf.float32)
+            answer_one_hot = tf.reshape(answer_one_hot,[-1, self.vocab_size])
             #results = tf.reshape(results, [-1,results.get_shape().as_list()[2]])
             #results = tf.cast(self.external_memory_function(results), dtype=tf.float32)
 
@@ -312,19 +313,19 @@ class ECMModel(object):
 
             EM_ids, EM_output = self.external_memory_function(tf.reshape(results,[-1,self.decoder_state_size]))
             EM_ids = tf.reshape(EM_ids,[self.batch_size,-1])
-            EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
+            #EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
             logging.debug('logits: %s' % str(EM_output))
             logging.debug('labels: %s' % str(answer_one_hot))
             logging.debug('EM_ID: %s' % str(EM_ids))
 
-            loss = tf.nn.softmax_cross_entropy_with_logits(logits=EM_output, labels=answer_one_hot)  # self.vocab_label)
+            loss = tf.reduce_all(tf.nn.softmax_cross_entropy_with_logits(logits=EM_output, labels=answer_one_hot)) # self.vocab_label)
             emotion_label = tf.cast((self.answer < (self.emotion_size)), dtype=tf.float32)
             emotion_logit = tf.cast((EM_ids < (self.emotion_size)), dtype=tf.float32)
 
             logging.debug('emotion logits: %s' % str(emotion_logit))
             logging.debug('emotion labels: %s' % str(emotion_label))
-            loss += tf.nn.softmax_cross_entropy_with_logits(logits=tf.cast(emotion_logit, dtype=tf.float32),
-                                                            labels=tf.cast(emotion_label, dtype=tf.float32))
+            loss += tf.reduce_all(tf.nn.softmax_cross_entropy_with_logits(logits=tf.cast(emotion_logit, dtype=tf.float32),
+                                                            labels=tf.cast(emotion_label, dtype=tf.float32)))
             loss += 2 * tf.nn.l2_loss(self.internalMemory)
             logging.debug('loss: %s' % str(loss))
             return loss
