@@ -341,14 +341,15 @@ class ECMModel(object):
             loss += 2 * tf.nn.l2_loss(self.internalMemory)
             print("loss 3 ptint ", loss)
             logging.debug('loss: %s' % str(loss))
-            return loss
+            EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
+            return loss, EM_output
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
         results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
         logging.debug('results: %s' % str(results))
-        self.tfloss = loss(results)
+        self.tfloss, self.EM_output = loss(results)
         self.train_op = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(self.tfloss)
 
-        self.tfids = tf.argmax(results, axis=2)
+        self.tfids = tf.argmax(self.EM_output, axis=2)
         logging.debug('self.tfids: %s' % str(self.tfids))
 
     def train(self, sess, training_set):
