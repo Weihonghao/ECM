@@ -194,7 +194,7 @@ class ECMModel(object):
 
 
         print('flag1')
-        gto = tf.sigmoid(tf.reduce_sum(tf.multiply(decode_output, self.vu)))
+        gto = tf.sigmoid(tf.reduce_sum(tf.matmul(decode_output, self.vu)))
         print('flag2')
         emotion_num = self.emotion_size
         print('flag3')
