@@ -172,6 +172,7 @@ class ECMModel(object):
                 logging.debug('gate output: %s' % str(read_gate_output))
                 next_input = tf.concat(
                     [context, previous_output_vector, read_gate_output], 1)
+                logging.debug('next_input: %s' % str(next_input))
                 return next_input
 
             elements_finished = (time >= decoder_length)  # this operation produces boolean tensor of [batch_size]
