@@ -309,7 +309,7 @@ class ECMModel(object):
 
 
 
-            (EM_ids, EM_output) = emotion_distribution(tf.reshape(results,[-1,self.decoder_state_size]))
+            EM_ids, EM_output = emotion_distribution(tf.reshape(results,[-1,self.decoder_state_size]))
             EM_ids = tf.reshape(EM_ids,[self.batch_size,-1])
             EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
             logging.debug('logits: %s' % str(EM_output))
