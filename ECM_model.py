@@ -312,6 +312,7 @@ class ECMModel(object):
             loss += tf.nn.softmax_cross_entropy_with_logits(logits=tf.cast(emotion_distribution(results), dtype=tf.float32),
                                                             labels=tf.cast(emotion_label, dtype=tf.float32))
             loss += 2 * tf.nn.l2_loss(self.internalMemory)
+            logging.debug('loss: %s' % str(loss))
             return loss
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
         results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
