@@ -23,10 +23,11 @@ class ECMModel(object):
         self.vocab_size = config.vocab_size
         self.non_emotion_size = config.non_emotion_size
         self.emotion_size = self.vocab_size - self.non_emotion_size
+        self.id2word = id2word
         self.encoder_state_size = int(config.vocab_size / 2)
         if (self.config.vocab_size % 2 == 1):
             self.decoder_state_size = config.vocab_size + 1
-            print (config.vocab_size in id2word.keys())
+            print (len(self.id2word))
             id2word[config.vocab_size] = 'NULL'
         else:
             self.decoder_state_size = config.vocab_size
@@ -39,7 +40,7 @@ class ECMModel(object):
 
         self.vu = tf.get_variable("vu", shape=[self.vocab_size, 1], initializer=tf.contrib.layers.xavier_initializer())
 
-        self.id2word = id2word
+
         # self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True))
 
         self.question = tf.placeholder(tf.int32, shape=[None, None], name='question')
