@@ -143,8 +143,9 @@ def train():
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)) as sess:
         # Create model.
+        sess.run(tf.global_variables_initializer())
         with tf.device('/gpu:1'):
-            sess.run(tf.global_variables_initializer())
+
             #print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
             model = ECM_model.ECMModel(embeddings, rev_vocab, FLAGS)
             tmpModel = initialize_model(sess, model)
