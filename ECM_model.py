@@ -151,6 +151,11 @@ class ECMModel(object):
 
             def get_next_input():
                 print('in get next input')
+
+                '''write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
+                change_IM = tf.nn.embedding_lookup(self.internalMemory,self.emotion_tag)
+                change_IM = change_IM * write_gate'''
+
                 previous_output_id = self.external_memory_function(previous_output)
                 previous_output_vector = tf.nn.embedding_lookup(self.embeddings, previous_output_id)
                 score = attention_mechanism(previous_state)
