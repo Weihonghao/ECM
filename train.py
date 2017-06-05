@@ -173,7 +173,7 @@ def train():
                 avg_loss = 0
                 for i, batch in enumerate(utils.minibatches(training_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
                     global_batch_num = batch_num * epoch + i
-                    loss = model.train(sess, batch)
+                    _, loss = model.train(sess, batch)
                     print('loss is: ', epoch,'  ',  i, '  ', loss)
                     avg_loss += loss
                 avg_loss /= batch_num

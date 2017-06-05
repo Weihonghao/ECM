@@ -341,7 +341,8 @@ class ECMModel(object):
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
         results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
         logging.debug('results: %s' % str(results))
-        self.tfloss = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(loss(results))
+        self.tfloss = loss(results)
+        self.train_op = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(self.tfloss)
         self.tfids = tf.argmax(results, axis=1)
 
     def train(self, sess, training_set):
@@ -349,7 +350,7 @@ class ECMModel(object):
         tag_batch = map(lambda x: x[0],tag_batch)
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
                                            answer_len_batch, is_train=True)
-        return sess.run(self.tfloss, feed_dict=input_feed)
+        return sess.run([self.train_op, self.tfloss], feed_dict=input_feed)
 
     def test(self, sess, test_set):
         question_batch, question_len_batch, tag_batch = test_set
