@@ -279,6 +279,7 @@ class ECMModel(object):
 
     def train(self, sess, training_set):
         question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
+        tag_batch = map(lambda x: x[0],tag_batch)
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
                                            answer_len_batch, is_train=True)
 
