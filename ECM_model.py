@@ -161,7 +161,7 @@ class ECMModel(object):
                 logging.debug('attention_mechanism.values: %s' % str(attention_mechanism.values))
                 context = tf.matmul(weights, attention_mechanism.values)
                 logging.debug('context: %s' % str(context))
-                context = tf.reshape(context, [context.get_shape().as_list()[0], context.get_shape().as_list()[2]])
+                context = tf.reshape(context, [-1, context.get_shape().as_list()[2]])
                 print("here1")
                 logging.debug('previous_output_vector: %s' % str(previous_output_vector))
                 logging.debug('context: %s' % str(context))
