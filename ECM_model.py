@@ -301,7 +301,8 @@ class ECMModel(object):
             logging.debug('labels: %s' % str(self.answer))
             #answer_all = tf.reshape(self.a, [-1,self.config.embedding_size])
 
-            answer_one_hot = tf.one_hot(indices= self.answer, depth= self.vocab_size, on_value= 1, off_value=0,axis=-1, dtype=tf.float32)
+            answer_one_hot = tf.one_hot(indices= self.answer, depth= self.vocab_size, on_value= 1, off_value=0,axis=-1)#, dtype=tf.float32)
+            answer_one_hot = tf.cast(answer_one_hot, dtype=tf.float32)
             #results = tf.reshape(results, [-1,results.get_shape().as_list()[2]])
             #results = tf.cast(self.external_memory_function(results), dtype=tf.float32)
 
