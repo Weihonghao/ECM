@@ -24,13 +24,13 @@ class ECMModel(object):
         self.non_emotion_size = config.non_emotion_size
         self.emotion_size = self.vocab_size - self.non_emotion_size
         self.id2word = id2word
-        self.encoder_state_size = int(config.vocab_size / 2)
         if (self.config.vocab_size % 2 == 1):
             self.decoder_state_size = config.vocab_size + 1
             print (len(self.id2word))
             id2word.append('NULL')
         else:
             self.decoder_state_size = config.vocab_size
+        self.encoder_state_size = int(self.decoder_state_size / 2)
         self.emotion_size = 6
         self.GO_id = 1
         self.pad_id = 0
