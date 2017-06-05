@@ -48,7 +48,7 @@ class ECMModel(object):
         self.internalMemory = tf.get_variable("IMFuck", shape=[self.emotion_kind, self.IM_size],
                                               initializer=tf.contrib.layers.xavier_initializer())
 
-        self.vu = tf.get_variable("vu", shape=[self.decoder_state_size, 1], initializer=tf.contrib.layers.xavier_initializer())
+        self.vu = tf.get_variable("vu", shape=[self.batch_size, self.decoder_state_size, 1], initializer=tf.contrib.layers.xavier_initializer())
 
 
         # self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True))
