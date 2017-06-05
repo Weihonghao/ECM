@@ -121,7 +121,7 @@ def initialize_model(session, model):
         model.saver.restore(session, ckpt.model_checkpoint_path)
     else:
         print("Created model with fresh parameters.")
-        #session.run(tf.global_variables_initializer())
+        session.run(tf.global_variables_initializer())
     return model
 
 
@@ -143,14 +143,15 @@ def train():
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)) as sess:
         # Create model.
-        sess.run(tf.global_variables_initializer())
+
         with tf.device('/gpu:1'):
 
             #print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
             model = ECM_model.ECMModel(embeddings, rev_vocab, FLAGS)
-            tmpModel = initialize_model(sess, model)
+            initialize_model(sess, model)
+            '''tmpModel = initialize_model(sess, model)
             if tmpModel is not None:
-                model = tmpModel
+                model = tmpModel'''
             tic = time.time()
             params = tf.trainable_variables()
             num_params = sum(map(lambda t: np.prod(tf.shape(t.value()).eval()), params))
