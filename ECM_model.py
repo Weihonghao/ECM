@@ -299,6 +299,8 @@ class ECMModel(object):
             results = tf.reshape(results, [-1,results.get_shape().as_list()[2]])
             results = self.external_memory_function(results)
 
+            logging.debug('logits: %s' % str(results))
+            logging.debug('labels: %s' % str(answer_all))
 
 
             loss = tf.nn.softmax_cross_entropy_with_logits(logits=results, labels=answer_all)  # self.vocab_label)
