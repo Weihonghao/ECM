@@ -8,15 +8,16 @@ import random
 import sys
 import time
 import logging
+import ECM_model
 
 import numpy as np
-from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from os.path import join as pjoin
 
 import preprocess_data
 import utils
 import seq2seq_model
+from tensorflow.python.platform import gfile
 
 tf.app.flags.DEFINE_float("learning_rate", 0.01, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.99, "Learning rate decays by this much.")
@@ -46,6 +47,9 @@ FLAGS = tf.app.flags.FLAGS
 # See seq2seq_model.Seq2SeqModel for details of how they work.
 _buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
 
+def strip(x):
+    return map(int, x.strip().split(" "))
+
 class DataConfig(object):
     """docstring for DataDir"""
 
@@ -67,7 +71,7 @@ def read_data(data_config):
     train = []
     max_q_len = 0
     max_a_len = 0
-    logger.info("Loading training data from %s ...") % data_config.train_from
+    print("Loading training data from %s ...") % data_config.train_from
     with gfile.GFile(data_config.train_from, mode="rb") as q_file, \
          gfile.GFile(data_config.train_to, mode="rb") as a_file, \
          gfile.GFile(data_config.train_tag, mode="rb") as t_file:
@@ -81,9 +85,9 @@ def read_data(data_config):
                 max_q_len = max(max_q_len, len(question))
                 max_a_len = max(max_a_len, len(answer))
                 
-    logger.info("Finish loading %d train data." % len(train))
-
-    logger.info("Loading training data from %s ...") data_config.val_from
+    print("Finish loading %d train data." % len(train))
+    val = []
+    print("Loading training data from %s ..." %data_config.val_from)
     with gfile.GFile(data_config.val_from, mode="rb") as q_file, \
          gfile.GFile(data_config.val_to, mode="rb") as a_file, \
          gfile.GFile(data_config.val_tag, mode="rb") as t_file:
@@ -97,9 +101,9 @@ def read_data(data_config):
                 max_q_len = max(max_q_len, len(question))
                 max_a_len = max(max_a_len, len(answer))
 
-    logger.info("Finish loading %d val data." % len(val))
-    logger.info("Max question length %d " % max_q_len)
-    logger.info("Max answer length %d " % max_a_len)
+    print("Finish loading %d val data." % len(val))
+    print("Max question length %d " % max_q_len)
+    print("Max answer length %d " % max_a_len)
 
     return {"training": train, "validation": val, "question_maxlen": max_q_len, "answer_maxlen": max_a_len}
 
@@ -126,6 +130,8 @@ def train():
     vocab_path = FLAGS.vocab_path or pjoin(FLAGS.data_dir, "vocab.dat")
     non_emotion_size, vocab, rev_vocab = preprocess_data.initialize_vocabulary(vocab_path)
     FLAGS.vocab_size = len(vocab)
+    FLAGS.encoder_state_size = 128
+    FLAGS.decoder_state_size = 2 * FLAGS.encoder_state_size
     print(embeddings.shape[0], len(vocab))
     assert embeddings.shape[0] == len(vocab)
 
@@ -133,7 +139,7 @@ def train():
         # Create model.
         with tf.device('/gpu:1'):
             print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
-            model = ECM_model.ECMModel(embeddings, vocab_label, emotion_label, rev_vocab, FLAGS)
+            model = ECM_model.ECMModel(embeddings, rev_vocab, FLAGS)
             initialize_model(sess, model)
             tic = time.time()
             params = tf.trainable_variables()
@@ -146,12 +152,12 @@ def train():
             training_set = dataset['training'] # [question, len(question), answer, len(answer), tag]
             validation_set = dataset['validation']
 
-            for epoch in range(self.config.epochs):
+            for epoch in range(FLAGS.epochs):
                 logging.info("="* 10 + " Epoch %d out of %d " + "="* 10, epoch + 1, FLAGS.epochs)
-                batch_num = len(train_set) / batch_size
-                prog = Progbar(target=batch_num)
+                batch_num = len(training_set) / FLAGS.batch_size
+                #prog = Progbar(target=batch_num)
                 avg_loss = 0
-                for i, batch in enumerate(minibatches(training_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
+                for i, batch in enumerate(utils.minibatches(training_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
                     global_batch_num = batch_num * epoch + i
                     loss = model.train(sess, batch)
                     avg_loss += loss
@@ -159,9 +165,9 @@ def train():
                 logging.info("Average training loss: {}".format(avg_loss))
                 
                 logging.info("-- validation --")
-                batch_num = len(validation_set) / batch_size
+                batch_num = len(validation_set) / FLAGS.batch_size
                 avg_loss = 0
-                for i, batch in enumerate(minibatches(validation_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
+                for i, batch in enumerate(utils.minibatches(validation_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
                     global_batch_num = batch_num * epoch + i
                     loss = model.test(sess, batch)
                     avg_loss += loss
@@ -171,10 +177,10 @@ def train():
 
 
 def main(_):
-    elif FLAGS.decode:
+    '''if FLAGS.decode:
         decode()
-    else:
-        train()
+    else:'''
+    train()
 
 
 if __name__ == "__main__":
