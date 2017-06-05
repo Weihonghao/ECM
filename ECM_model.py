@@ -343,7 +343,9 @@ class ECMModel(object):
         logging.debug('results: %s' % str(results))
         self.tfloss = loss(results)
         self.train_op = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(self.tfloss)
+
         self.tfids = tf.argmax(results, axis=2)
+        logging.debug('self.tfids: %s' % str(self.tfids))
 
     def train(self, sess, training_set):
         question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
