@@ -281,7 +281,7 @@ class ECMModel(object):
         question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
                                            answer_len_batch, is_train=True)
-        print('fuck here', tag_batch.shape)
+
 
         def emotion_distribution(decode_outputs):
             decode_outputs = tf.reshape(decode_outputs, [-1,decode_outputs.get_shape().as_list()[2]])
@@ -307,6 +307,7 @@ class ECMModel(object):
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
         results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
         tfloss = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(loss(results))
+        logging.debug('tag batcg: %s' % str(tag_batch))
         return sess.run(tfloss, feed_dict=input_feed)
 
     def test(self, sess, test_set):
