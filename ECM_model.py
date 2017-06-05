@@ -189,7 +189,7 @@ class ECMModel(object):
             inputNow = tf.cond(finished, lambda : pad_step_embedded, get_next_input)
             logging.debug('inputNow: %s' % str(inputNow))
             logging.debug('previous_state: %s' % str(previous_state))
-            output, state = decode_cell(input, previous_state)
+            output, state = decode_cell(inputNow, previous_state)
             loop_state = None
 
             write_gate = tf.sigmoid(tf.layers.dense(state, self.IM_size, name="write_gate"))
