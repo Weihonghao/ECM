@@ -353,6 +353,7 @@ class ECMModel(object):
         return sess.run([self.train_op, self.tfloss], feed_dict=input_feed)
 
     def test(self, sess, test_set):
+        print(test_set.shape)
         question_batch, question_len_batch, tag_batch = test_set
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch=None,
                                            answer_len_batch=None, is_train=False)
