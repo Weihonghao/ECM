@@ -56,7 +56,7 @@ class ECMModel(object):
         self.question_len = tf.placeholder(tf.int32, shape=[None], name='question_len')
         self.answer = tf.placeholder(tf.int32, shape=[None, None], name='answer')
         self.answer_len = tf.placeholder(tf.int32, shape=[None], name='answer_len')
-        self.emotion_tag = tf.placeholder(tf.int32, shape=[None,1], name='emotion_tag')
+        self.emotion_tag = tf.placeholder(tf.int32, shape=[None], name='emotion_tag')
         self.dropout_placeholder = tf.placeholder(dtype=tf.float32, name="dropout", shape=())
         self.LQ = tf.placeholder(dtype=tf.int32, name='LQ', shape=())  # batch
         self.LA = tf.placeholder(dtype=tf.int32, name='LA', shape=())  # batch
