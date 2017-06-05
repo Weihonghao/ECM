@@ -20,7 +20,7 @@ class ECMModel(object):
         # self.emotion_label = emotion_label  # label for emotion
         self.config = config
         self.batch_size = config.batch_size
-        print("batch size", self.batch_size)
+        #print("batch size", self.batch_size)
         self.vocab_size = config.vocab_size
         self.non_emotion_size = config.non_emotion_size
         self.emotion_size = self.vocab_size - self.non_emotion_size
@@ -151,6 +151,7 @@ class ECMModel(object):
                 score = attention_mechanism(previous_state)
                 weights = tf.nn.softmax(score)
                 print("here")
+                weights = tf.reshape(weights, [weights.get_shape()[0],weights.get_shape()[1],1])
                 logging.debug('weights: %s' % str(weights))
                 logging.debug('attention_mechanism.values: %s' % str(attention_mechanism.values))
                 context = tf.matmul(weights, attention_mechanism.values)
