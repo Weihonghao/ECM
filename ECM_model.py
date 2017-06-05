@@ -151,7 +151,7 @@ class ECMModel(object):
                 score = attention_mechanism(previous_state)
                 weights = tf.nn.softmax(score)
                 print("here")
-                weights = tf.reshape(weights, [weights.get_shape()[0],weights.get_shape()[1],1])
+                weights = tf.reshape(weights, [weights.get_shape()[0],weights.get_shape()[1], -1])
                 logging.debug('weights: %s' % str(weights))
                 logging.debug('attention_mechanism.values: %s' % str(attention_mechanism.values))
                 context = tf.matmul(weights, attention_mechanism.values)
@@ -166,6 +166,8 @@ class ECMModel(object):
             # defining if corresponding sequence has ended
             finished = tf.reduce_all(elements_finished)  # -> boolean scalar
             pad_step_embedded = tf.nn.embedding_lookup(self.embeddings, self.pad_id)  ## undefined
+            logging.debug('finished: %s' % str(finished))
+            logging.debug('pad_step_embedded: %s' % str(pad_step_embedded))
             input = tf.cond(finished, lambda: pad_step_embedded, get_next_input)
             output, state = decode_cell(input, previous_state)
             loop_state = None
