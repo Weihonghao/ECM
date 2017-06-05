@@ -45,6 +45,7 @@ class ECMModel(object):
         self.GO_id = 1
         self.pad_id = 0
         self.IM_size = 256
+        self.eps = 1e-5
 
         self.internalMemory = tf.get_variable("IMFuck", shape=[self.emotion_kind, self.IM_size],
                                               initializer=tf.contrib.layers.xavier_initializer())
@@ -165,9 +166,17 @@ class ECMModel(object):
             def get_next_input():
                 print('in get next input')
 
-                '''write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
-                change_IM = tf.nn.embedding_lookup(self.internalMemory,self.emotion_tag)
-                change_IM = change_IM * write_gate'''
+                write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
+                #change_IM = tf.nn.embedding_lookup(self.internalMemory, self.emotion_tag)
+                #change_IM = change_IM * write_gate
+                eps_matrix = self.eps * tf.ones_like(write_gate)
+                eps_write_gate = tf.log(eps_matrix + write_gate)
+                write_one_hot = tf.one_hot(indices=self.emotion_tag, depth=self.emotion_kind)
+                write_one_hot_transpose = tf.transpose(write_one_hot)
+                new_internalMemory = self.internalMemory * (1-tf.sign(tf.reduce_sum(write_one_hot,axis=1)))
+                new_internalMemory += tf.exp(tf.matmul(write_one_hot_transpose, eps_write_gate))
+                assert  tf.shape(new_internalMemory) == tf.shape(self.internalMemory)
+                self.internalMemory = new_internalMemory
 
                 tmp_id, _ = self.external_memory_function(previous_output)
                 previous_output_id = tmp_id#tf.reshape(self.external_memory_function(previous_output), [self.batch_size])
