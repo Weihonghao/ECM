@@ -10,7 +10,7 @@ import copy
 import logging
 import preprocess_data
 import tensorflow as tf
-
+import numpy as np
 
 class ECMModel(object):
     def __init__(self, embeddings, id2word, config):
@@ -34,7 +34,7 @@ class ECMModel(object):
         self.vu = tf.get_variable("vu", shape=[self.vocab_size,1], initializer=tf.contrib.layers.xavier_initializer())
 
         self.id2word = id2word
-        self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True))
+        #self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True))
 
         self.question = tf.placeholder(tf.int32, shape=[None, None], name='question')
         self.question_len = tf.placeholder(tf.int32, shape=[None], name='question_len')
@@ -86,7 +86,8 @@ class ECMModel(object):
 
         logging.debug('Inputs: %s' % str(inputs))
         # Get lstm cell output
-        (outputs_fw, outputs_bw), (final_state_fw, final_state_bw) = tf.nn.bidirectional_dynamic_rnn(
+        print(inputs.get_shape())
+	(outputs_fw, outputs_bw), (final_state_fw, final_state_bw) = tf.nn.bidirectional_dynamic_rnn(
             cell_fw=lstm_fw_cell,
             cell_bw=lstm_bw_cell,
             inputs=inputs,
@@ -199,7 +200,8 @@ class ECMModel(object):
         feed_dict[self.LQ] = LQ
         feed_dict[self.emotion_tag] = emotion_tag_batch
         padded_question = padding_batch(question_batch, LQ)
-        feed_dict[self.question] = padded_question
+        print("padding question size ", np.array(padded_question).shape)
+	feed_dict[self.question] = padded_question
 
         if is_train:
             assert answer_batch is not None
@@ -215,7 +217,7 @@ class ECMModel(object):
 
         return feed_dict
 
-    def train(self, training_set):
+    def train(self, sess,  training_set):
         question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
                                            answer_len_batch, is_train=True)
@@ -235,9 +237,9 @@ class ECMModel(object):
         encoder_outputs, encoder_final_state = self.encode(self.question, self.question_len, None, self.dropout_placeholder)
         results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
         tfloss = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(loss(results))
-        return self.sess.run(tfloss, feed_dict=input_feed)
+        return sess.run(tfloss, feed_dict=input_feed)
 
-    def test(self, test_set):
+    def test(self, sess, test_set):
         question_batch, question_len_batch, tag_batch = test_set
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch=None,
                                            answer_len_batch=None, is_train=False)
@@ -245,5 +247,5 @@ class ECMModel(object):
         encoder_outputs, encoder_final_state = self.encode(self.question, self.question_len, None, self.dropout_placeholder)
         results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
         tfids = tf.argmax(results, axis= 1)
-        ids = self.sess.run(tfids, feed_dict=input_feed)
+        ids = sess.run(tfids, feed_dict=input_feed)
         return [self.id2word[id] for each in ids]

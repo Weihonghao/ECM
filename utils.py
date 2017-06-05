@@ -7,6 +7,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
+
+def minibatch(data, minibatch_idx):
+    return data[minibatch_idx] if type(data) is np.ndarray else [data[i] for i in minibatch_idx]
+
+
+
 def load_glove_embeddings(embed_path):
     logger.info("Loading glove embedding...")
     glove = np.load(embed_path)['glove']

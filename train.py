@@ -50,6 +50,9 @@ _buckets = [(5, 10), (10, 15), (20, 25), (40, 50)]
 def strip(x):
     return map(int, x.strip().split(" "))
 
+'''def minibatch(data, minibatch_idx):
+    return data[minibatch_idx] if type(data) is np.ndarray else [data[i] for i in minibatch_idx]'''
+
 class DataConfig(object):
     """docstring for DataDir"""
 
@@ -71,14 +74,14 @@ def read_data(data_config):
     train = []
     max_q_len = 0
     max_a_len = 0
-    print("Loading training data from %s ...") % data_config.train_from
+    print("Loading training data from %s ..." % data_config.train_from)
     with gfile.GFile(data_config.train_from, mode="rb") as q_file, \
          gfile.GFile(data_config.train_to, mode="rb") as a_file, \
          gfile.GFile(data_config.train_tag, mode="rb") as t_file:
             for (q, a, t) in zip(q_file, a_file, t_file):
                 question = strip(q)
                 answer = strip(a)
-                tag = int(strip(t))
+                tag = strip(t)
                 
                 sample = [question, len(question), answer, len(answer), tag]
                 train.append(sample)
@@ -94,7 +97,7 @@ def read_data(data_config):
             for (q, a, t) in zip(q_file, a_file, t_file):
                 question = strip(q)
                 answer = strip(a)
-                tag = int(strip(t))
+                tag = strip(t)
                 
                 sample = [question, len(question), answer, len(answer), tag]
                 val.append(sample)
@@ -130,6 +133,7 @@ def train():
     vocab_path = FLAGS.vocab_path or pjoin(FLAGS.data_dir, "vocab.dat")
     non_emotion_size, vocab, rev_vocab = preprocess_data.initialize_vocabulary(vocab_path)
     FLAGS.vocab_size = len(vocab)
+    FLAGS.non_emotion_size = non_emotion_size
     FLAGS.encoder_state_size = 128
     FLAGS.decoder_state_size = 2 * FLAGS.encoder_state_size
     print(embeddings.shape[0], len(vocab))
@@ -138,7 +142,7 @@ def train():
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)) as sess:
         # Create model.
         with tf.device('/gpu:1'):
-            print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
+            #print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
             model = ECM_model.ECMModel(embeddings, rev_vocab, FLAGS)
             initialize_model(sess, model)
             tic = time.time()
