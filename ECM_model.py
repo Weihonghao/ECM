@@ -318,14 +318,19 @@ class ECMModel(object):
             logging.debug('labels: %s' % str(answer_one_hot))
             logging.debug('EM_ID: %s' % str(EM_ids))
 
-            loss = tf.reduce_all(tf.nn.softmax_cross_entropy_with_logits(logits=EM_output, labels=answer_one_hot)) # self.vocab_label)
+            tmp = tf.nn.softmax_cross_entropy_with_logits(logits=EM_output, labels=answer_one_hot)
+            logging.debug('tmp loss 1: %s' % str(tmp))
+            loss = tf.reduce_sum(tmp) # self.vocab_label)
             emotion_label = tf.cast((self.answer < (self.emotion_size)), dtype=tf.float32)
             emotion_logit = tf.cast((EM_ids < (self.emotion_size)), dtype=tf.float32)
 
             logging.debug('emotion logits: %s' % str(emotion_logit))
             logging.debug('emotion labels: %s' % str(emotion_label))
-            loss += tf.reduce_all(tf.nn.softmax_cross_entropy_with_logits(logits=tf.cast(emotion_logit, dtype=tf.float32),
-                                                            labels=tf.cast(emotion_label, dtype=tf.float32)))
+
+            tmp = tf.nn.softmax_cross_entropy_with_logits(logits=tf.cast(emotion_logit, dtype=tf.float32),
+                                                            labels=tf.cast(emotion_label, dtype=tf.float32))
+            logging.debug('tmp loss 2: %s' % str(tmp))
+            loss += tf.reduce_sum(tmp)
             loss += 2 * tf.nn.l2_loss(self.internalMemory)
             logging.debug('loss: %s' % str(loss))
             return loss
