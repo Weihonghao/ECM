@@ -168,9 +168,10 @@ class ECMModel(object):
                 attention = tf.layers.dense(inputs=tf.concat([previous_output_vector, context], 1), units=self.IM_size)
                 read_gate = tf.sigmoid(attention, name="read_gate")
                 logging.debug('read_gate: %s' % str(read_gate))
-                logging.debug('gate output: %s' % str(tf.gather(params=self.internalMemory, indices=self.emotion_tag)))
+                read_gate_output = tf.nn.embedding_lookup(self.internalMemory,self.emotion_tag)
+                logging.debug('gate output: %s' % str(read_gate_output))
                 next_input = tf.concat(
-                    [context, previous_output_vector, read_gate * self.internalMemory[self.emotion_tag,:]], 1)
+                    [context, previous_output_vector, read_gate_output], 1)
                 return next_input
 
             elements_finished = (time >= decoder_length)  # this operation produces boolean tensor of [batch_size]
