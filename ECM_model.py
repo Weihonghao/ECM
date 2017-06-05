@@ -37,13 +37,13 @@ class ECMModel(object):
 
         self.decoder_state_size = magic_number
         self.encoder_state_size = int(self.decoder_state_size / 2)
-        self.pad_step_embedded = tf.constant(tf.zeros([self.batch_size, self.decoder_state_size * 2 + self.emotion_size]))
+        self.pad_step_embedded = tf.constant(tf.zeros([self.batch_size, self.decoder_state_size * 2 + config.embedding_size]))
 
-        self.emotion_size = 6
+        self.emotion_kind = 6
         self.GO_id = 1
         self.pad_id = 0
         self.IM_size = 256
-        self.internalMemory = tf.get_variable("IM", shape=[self.emotion_size, self.IM_size],
+        self.internalMemory = tf.get_variable("IM", shape=[self.emotion_kind, self.IM_size],
                                               initializer=tf.contrib.layers.xavier_initializer())
 
         self.vu = tf.get_variable("vu", shape=[self.decoder_state_size, 1], initializer=tf.contrib.layers.xavier_initializer())
