@@ -144,7 +144,7 @@ def train():
     print(embeddings.shape[0], len(vocab))
     assert embeddings.shape[0] == len(vocab)
 
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True)) as sess:
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess: #log_device_placement=True
         # Create model.
         sess.run([tf.global_variables_initializer(),tf.local_variables_initializer()])
         with tf.device('/gpu:1'):
