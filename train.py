@@ -121,7 +121,7 @@ def initialize_model(session, model):
         model.saver.restore(session, ckpt.model_checkpoint_path)
     else:
         print("Created model with fresh parameters.")
-        session.run(tf.initialize_all_variables())#tf.global_variables_initializer())
+        session.run([tf.global_variables_initializer(),tf.local_variables_initializer()])
     return model
 
 
