@@ -150,6 +150,8 @@ class ECMModel(object):
                 score = attention_mechanism(previous_state)
                 weights = tf.nn.softmax(score)
                 print("here")
+                logging.debug('weights: %s' % str(weights))
+                logging.debug('attention_mechanism.values: %s' % str(attention_mechanism.values))
                 context = tf.matmul(weights, attention_mechanism.values)
                 print("here1")
                 attention = tf.layers.dense(inputs=tf.concat([previous_output_vector, context], 1), units=self.IM_size)
