@@ -174,8 +174,9 @@ def train():
                 for i, batch in enumerate(utils.minibatches(training_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
                     global_batch_num = batch_num * epoch + i
                     _, loss = model.train(sess, batch)
-                    print('loss is: ', epoch,'  ',  i, '  ', loss)
+                    print('epoch %d [%d/%d], loss: %f' % (epoch, i, batch_num, loss))
                     avg_loss += loss
+
                 avg_loss /= batch_num
                 logging.info("Average training loss: {}".format(avg_loss))
                 
@@ -184,8 +185,10 @@ def train():
                 avg_loss = 0
                 for i, batch in enumerate(utils.minibatches(validation_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
                     global_batch_num = batch_num * epoch + i
-                    loss = model.test(sess, batch)
-                    print(loss)
+                    loss, ids = model.test(sess, batch)
+                    print('loss: %f' % (loss))
+                    print(ids)
+                    
                     #avg_loss += loss
                 #avg_loss /= batch_num
                 #logging.info("Average validation loss: {}".format(avg_loss))

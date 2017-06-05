@@ -14,7 +14,7 @@ import numpy as np
 
 
 class ECMModel(object):
-    def __init__(self, embeddings, id2word, config):
+    def __init__(self, embeddings, id2word, config, forward_only=False):
         magic_number = 256
         assert  (magic_number%2 == 0)
         self.embeddings = tf.cast(embeddings, dtype=tf.float32)
@@ -27,6 +27,7 @@ class ECMModel(object):
         self.non_emotion_size = config.non_emotion_size
         self.emotion_size = self.vocab_size - self.non_emotion_size
         self.id2word = id2word
+        self.forward_only = forward_only
 
         '''if (self.config.vocab_size % 2 == 1):
             self.decoder_state_size = config.vocab_size + 1
@@ -55,12 +56,13 @@ class ECMModel(object):
 
         self.question = tf.placeholder(tf.int32, shape=[None, None], name='question')
         self.question_len = tf.placeholder(tf.int32, shape=[None], name='question_len')
-        self.answer = tf.placeholder(tf.int32, shape=[None, None], name='answer')
-        self.answer_len = tf.placeholder(tf.int32, shape=[None], name='answer_len')
+        if not self.forward_only:
+            self.answer = tf.placeholder(tf.int32, shape=[None, None], name='answer')
+            self.answer_len = tf.placeholder(tf.int32, shape=[None], name='answer_len')
+            self.LA = tf.placeholder(dtype=tf.int32, name='LA', shape=())  # batch
         self.emotion_tag = tf.placeholder(tf.int32, shape=[None], name='emotion_tag')
         self.dropout_placeholder = tf.placeholder(dtype=tf.float32, name="dropout", shape=())
         self.LQ = tf.placeholder(dtype=tf.int32, name='LQ', shape=())  # batch
-        self.LA = tf.placeholder(dtype=tf.int32, name='LA', shape=())  # batch
 
         with tf.variable_scope("ecm", initializer=tf.contrib.layers.xavier_initializer()):
             self.setup_embeddings()
@@ -239,8 +241,6 @@ class ECMModel(object):
         return decoder_outputs_reshape
 
     def external_memory_function(self, decode_state):  # decode_output, shape[batch_size,vocab_size]
-
-
         print('flag1')
         #decode_output = tf.reshape(in_decode_output, [self.batch_size,-1,self.decoder_state_size])
         gto = tf.sigmoid(tf.reduce_sum(tf.matmul(decode_state, self.vu)))
@@ -281,7 +281,7 @@ class ECMModel(object):
         print("padding question size ", np.array(padded_question).shape)
         feed_dict[self.question] = padded_question
 
-        if is_train:
+        if not self.forward_only:
             assert answer_batch is not None
             assert answer_len_batch is not None
             LA = np.max(answer_len_batch)
@@ -289,6 +289,8 @@ class ECMModel(object):
             feed_dict[self.answer] = padded_answer
             feed_dict[self.answer_len] = answer_len_batch
             feed_dict[self.LA] = LA
+
+        if is_train:
             feed_dict[self.dropout_placeholder] = 0.8
         else:
             feed_dict[self.dropout_placeholder] = 1.0
@@ -301,8 +303,6 @@ class ECMModel(object):
             return tf.cast((decode_outputs_ids < (self.emotion_size)), dtype=tf.int64)
 
         def loss(results):
-
-
             #logging.debug('logits: %s' % str(results))
             logging.debug('labels: %s' % str(self.answer))
             #answer_all = tf.reshape(self.a, [-1,self.config.embedding_size])
@@ -312,9 +312,6 @@ class ECMModel(object):
             answer_one_hot = tf.reshape(answer_one_hot,[-1, self.vocab_size])
             #results = tf.reshape(results, [-1,results.get_shape().as_list()[2]])
             #results = tf.cast(self.external_memory_function(results), dtype=tf.float32)
-
-
-
             EM_ids, EM_output = self.external_memory_function(tf.reshape(results,[-1,self.decoder_state_size]))
             EM_ids = tf.reshape(EM_ids,[self.batch_size,-1])
             #EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
@@ -343,11 +340,15 @@ class ECMModel(object):
             logging.debug('loss: %s' % str(loss))
             EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
             return loss, EM_output
-        encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
-        results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
-        logging.debug('results: %s' % str(results))
-        self.tfloss, self.EM_output = loss(results)
-        self.train_op = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(self.tfloss)
+        if not self.forward_only:
+            encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
+            results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
+            logging.debug('results: %s' % str(results))
+            self.tfloss, self.EM_output = loss(results)
+            self.train_op = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(self.tfloss)
+        else:
+            EM_ids, EM_output = self.external_memory_function(tf.reshape(results,[-1,self.decoder_state_size]))
+            self.EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
 
         self.tfids = tf.argmax(self.EM_output, axis=2)
         logging.debug('self.tfids: %s' % str(self.tfids))
@@ -359,10 +360,23 @@ class ECMModel(object):
                                            answer_len_batch, is_train=True)
         return sess.run([self.train_op, self.tfloss], feed_dict=input_feed)
 
+    def answer(self, sess, dataset):
+        #print(len(dataset))
+        assert self.forward_only == True
+        question_batch, question_len_batch, _, _, tag_batch = dataset
+        tag_batch = map(lambda x: x[0],tag_batch)
+        answer_len_batch = 10 * np.ones(self.batch_size)
+
+        input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch=None,
+                                           answer_len_batch=answer_len_batch, is_train=False)
+        ids = sess.run([self.tfids], feed_dict=input_feed)
+        return [[self.id2word[each] for each in each_list] for each_list in ids]
+
     def test(self, sess, test_set):
         #print(len(test_set))
-        question_batch, question_len_batch, tag_batch, _, _ = test_set
-        input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch=None,
-                                           answer_len_batch=None, is_train=False)
-        ids = sess.run(self.tfids, feed_dict=input_feed)
-        return [[self.id2word[each] for each in each_list] for each_list in ids]
+        question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = test_set
+        tag_batch = map(lambda x: x[0],tag_batch)
+        input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
+                                           answer_len_batch, is_train=False)
+        loss, ids = sess.run([self.tfloss, self.tfids], feed_dict=input_feed)
+        return loss, [[self.id2word[each] for each in each_list] for each_list in ids]
