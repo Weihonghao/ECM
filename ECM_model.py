@@ -284,13 +284,13 @@ class ECMModel(object):
 
         decode_cell = tf.contrib.rnn.GRUCell(self.decoder_state_size)
         attention_mechanism = tf.contrib.seq2seq.LuongAttention(self.decoder_state_size, encoder_outputs)
-        decoder_outputs_ta, decoder_final_state, _ = tf.nn.raw_rnn(decode_cell, loop_fn)
+        decoder_outputs_ta, decoder_final_state, decoder_final_loop_state = tf.nn.raw_rnn(decode_cell, loop_fn)
         decoder_outputs = decoder_outputs_ta.stack()
         decoder_max_steps, decoder_batch_size, decoder_dim = tf.unstack(tf.shape(decoder_outputs))#decoder_outputs.get_shape().as_list()#tf.unstack(tf.shape(decoder_outputs))
         #assert (decoder_batch_size.as_list()[0] == self.batch_size)
         #assert (decoder_dim.as_list()[0] == self.decoder_state_size)
         decoder_outputs_reshape = tf.reshape(decoder_outputs, [decoder_batch_size,decoder_max_steps , decoder_dim])
-        return decoder_outputs_reshape, decoder_final_state
+        return decoder_outputs_reshape, decoder_final_state, decoder_final_loop_state
 
     def external_memory_function(self, decode_state):  # decode_output, shape[batch_size,decode_size]
         print('flag1')
@@ -397,7 +397,7 @@ class ECMModel(object):
             return loss, EM_output
 
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
-        results, final_IM = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
+        results, final_state, final_IM = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
         if not self.forward_only:
             logging.debug('results: %s' % str(results))
             self.tfloss, self.EM_output = loss(results, final_IM)
