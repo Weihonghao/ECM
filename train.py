@@ -187,7 +187,7 @@ def train():
                 batch_num = int(len(training_set) / FLAGS.batch_size)
                 #prog = Progbar(target=batch_num)
                 avg_loss = 0
-                for i, batch in enumerate(utils.minibatches(training_set, FLAGS.batch_size)):
+                for i, batch in enumerate(utils.minibatches(training_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
                     global_batch_num = batch_num * epoch + i
                     time1 = time.time()
                     if global_batch_num % FLAGS.steps_per_tensorboard == FLAGS.steps_per_tensorboard - 1:

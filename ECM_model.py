@@ -19,7 +19,6 @@ class ECMModel(object):
     def __init__(self, embeddings, id2word, config, forward_only=False):
         magic_number = 256
         assert  (magic_number%2 == 0)
-        self.embeddings = tf.cast(embeddings, dtype=tf.float32)
         # self.vocab_label = vocab_label  # label for vocab
         # self.emotion_label = emotion_label  # label for emotion
         self.config = config
@@ -40,13 +39,18 @@ class ECMModel(object):
         #input_size = self.batch_size, self.decoder_state_size * 2 + config.embedding_size
         #input_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim + config.embedding_size]
         input_size = [self.batch_size, config.embedding_size] #self.emotion_vector_dim +  
+        if self.config.retrain_embeddings:  # whether to cotrain word embedding
+            self.embeddings = tf.Variable(embeddings, name="Emb", dtype=tf.float32)
+        else:
+            self.embeddings = tf.cast(embeddings, tf.float32)
+
         eos_time_slice = EOS_ID  * tf.ones([self.batch_size], dtype=tf.int32, name='EOS')
         pad_time_slice = PAD_ID * tf.ones([self.batch_size], dtype=tf.int32, name='PAD')
         go_time_slice = GO_ID * tf.ones([self.batch_size], dtype=tf.int32, name='PAD')
         
-        self.eos_step_embedded = 0.01 * tf.random_uniform(input_size)
-        self.pad_step_embedded = 0.01 * tf.random_uniform(input_size)#0.001 * tf.ones(input_size)
-        self.go_step_embedded = 0.01 * tf.random_uniform(input_size)#0.001 * tf.ones(input_size)
+        self.eos_step_embedded = tf.nn.embedding_lookup(self.embeddings, eos_time_slice)
+        self.pad_step_embedded = tf.nn.embedding_lookup(self.embeddings, pad_time_slice)#0.001 * tf.ones(input_size)
+        self.go_step_embedded = tf.nn.embedding_lookup(self.embeddings, go_time_slice)#0.001 * tf.ones(input_size)
 
         self.IM_size = 256
         self.eps = 1e-5
@@ -73,8 +77,7 @@ class ECMModel(object):
 
     def setup_embeddings(self):
         with tf.variable_scope("embeddings"):
-            embeddings = tf.Variable(tf.random_uniform([self.vocab_size, self.config.embedding_size], -1.0, 1.0), dtype=tf.float32)
-            self.q = tf.nn.embedding_lookup(embeddings, self.question)
+            self.q = tf.nn.embedding_lookup(self.embeddings, self.question)
 
 
     def encode(self, inputs, sequence_length, encoder_state_input, dropout=1.0):
@@ -325,7 +328,9 @@ class ECMModel(object):
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
         decoder_logits, decoder_prediction = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
         # stepwise_cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=tf.one_hot(self.answer, depth=self.vocab_size, dtype=tf.float32), logits=decoder_logits)
-        self.tfloss = tf.contrib.seq2seq.sequence_loss(logits = decoder_logits, targets = self.answer, weights = tf.ones_like(self.answer, dtype=tf.float32))
+        mask = tf.cast(tf.sequence_mask(self.answer_len, tf.shape(self.answer)[0]), dtype=tf.float32)
+
+        self.tfloss = tf.contrib.seq2seq.sequence_loss(logits=tf.transpose(decoder_logits, [1, 0, 2]), targets=tf.transpose(self.answer, [1, 0]), weights = mask)
         # self.tfloss = tf.reduce_mean(stepwise_cross_entropy)
         loss_sum = tf.summary.scalar("loss", self.tfloss)
         self.train_op = tf.train.AdamOptimizer().minimize(self.tfloss)
