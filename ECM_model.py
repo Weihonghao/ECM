@@ -45,7 +45,7 @@ class ECMModel(object):
         self.encoder_state_size = int(self.decoder_state_size / 2)
         #input_size = self.batch_size, self.decoder_state_size * 2 + config.embedding_size
         #input_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim + config.embedding_size]
-        input_size = [self.batch_size, self.emotion_vector_dim + config.embedding_size]
+        input_size = [self.batch_size, config.embedding_size] #self.emotion_vector_dim + 
         self.pad_step_embedded = tf.random_uniform(input_size)#0.001 * tf.ones(input_size)
         self.go_step_embedded = tf.random_uniform(input_size)#0.001 * tf.ones(input_size)
 
