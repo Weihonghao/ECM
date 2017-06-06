@@ -129,7 +129,6 @@ def initialize_model(saver, session, model):
     else:
         print("Created model with fresh parameters.")
         session.run([tf.global_variables_initializer(),tf.local_variables_initializer()])
-    model.merged_all = tf.summary.merge_all()
 
 def save(saver, sess, step):
     model_name = "model"
