@@ -296,7 +296,7 @@ class ECMModel(object):
         print('flag1')
         #decode_output = tf.reshape(in_decode_output, [self.batch_size,-1,self.decoder_state_size])
         gto = tf.sigmoid(tf.reduce_sum(tf.matmul(decode_state, self.vu),axis= 1))
-        gto = tf.reshape(gto, [gto.get_shape().as_list()[0],1])
+        gto = tf.reshape(gto, [tf.shape(gto)[0],1])
         logging.debug('gto: %s' % str(gto))
         print('flag2')
         emotion_num = self.emotion_size
