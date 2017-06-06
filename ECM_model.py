@@ -70,7 +70,7 @@ class ECMModel(object):
         with tf.variable_scope("ecm", initializer=tf.contrib.layers.xavier_initializer()):
             self.setup_embeddings()
             self.setup_system()
-
+        self.merged_all = tf.summary.merge_all()
 
     def setup_embeddings(self):
         with tf.variable_scope("embeddings"):
@@ -390,6 +390,7 @@ class ECMModel(object):
         if not self.forward_only:
             logging.debug('results: %s' % str(results))
             self.tfloss, self.EM_output = loss(results, final_IM)
+            loss_sum = tf.summary.scalar("loss", self.tfloss)
             self.train_op = tf.train.AdamOptimizer(self.config.learning_rate, beta1=0.5).minimize(self.tfloss)
         else:
             EM_ids, EM_output = self.external_memory_function(tf.reshape(results,[-1,self.decoder_state_size]))
@@ -398,12 +399,19 @@ class ECMModel(object):
         self.tfids = tf.argmax(self.EM_output, axis=2)
         logging.debug('self.tfids: %s' % str(self.tfids))
 
-    def train(self, sess, training_set):
+    def train(self, sess, training_set, tensorboard=False):
         question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
         tag_batch = map(lambda x: x[0],tag_batch)
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
                                            answer_len_batch, is_train=True)
-        return sess.run([self.train_op, self.tfloss], feed_dict=input_feed)
+        if tensorboard:
+            run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
+            run_metadata = tf.RunMetadata()
+            _, loss, merged = sess.run([self.train_op, self.tfloss, self.merged_all], feed_dict=input_feed, options=run_options, run_metadata=run_metadata)
+            return loss, merged
+        else:
+            _, loss = sess.run([self.train_op, self.tfloss], feed_dict=input_feed)
+            return loss
 
     def answer(self, sess, dataset):
         #print(len(dataset))
