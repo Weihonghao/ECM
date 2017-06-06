@@ -412,8 +412,8 @@ class ECMModel(object):
 
     def train(self, sess, training_set, tensorboard=False):
         question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
-        for each in question_batch:
-            print([self.id2word[word] for word in each ])
+        '''for each in question_batch:
+            print([self.id2word[word] for word in each ])'''
         tag_batch = map(lambda x: x[0],tag_batch)
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
                                            answer_len_batch, is_train=True)
@@ -441,8 +441,8 @@ class ECMModel(object):
     def test(self, sess, test_set):
         #print(len(test_set))
         question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = test_set
-        for each in question_batch:
-            print([self.id2word[word] for word in each])
+        '''for each in question_batch:
+            print([self.id2word[word] for word in each])'''
         tag_batch = map(lambda x: x[0],tag_batch)
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
                                            answer_len_batch, is_train=False)

@@ -209,7 +209,7 @@ def train():
                 logging.info("-- validation --")
                 batch_num = len(validation_set) / FLAGS.batch_size
                 avg_loss = 0
-                for i, batch in enumerate(utils.minibatches(validation_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
+                for i, batch in enumerate(utils.minibatches(training_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):#validation_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
                     global_batch_num = batch_num * epoch + i
                     loss, ids = model.test(sess, batch)
                     print('loss: %f' % (loss))
