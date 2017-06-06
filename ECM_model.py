@@ -29,9 +29,10 @@ class ECMModel(object):
         self.id2word = id2word
         self.forward_only = forward_only
         self.emotion_kind = 6
+        self.emotion_vector_dim = 100
         self.emotion_vector = tf.get_variable("emotion vector", shape=[self.emotion_kind, self.emotion_vector_dim],
                                               initializer=tf.contrib.layers.xavier_initializer())
-        self.emotion_vector_dim = 100
+
 
         '''if (self.config.vocab_size % 2 == 1):
             self.decoder_state_size = config.vocab_size + 1
