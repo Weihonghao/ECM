@@ -22,7 +22,7 @@ from tensorflow.python.platform import gfile
 logging.basicConfig(level=logging.INFO)
 
 
-tf.app.flags.DEFINE_float("learning_rate", 0.01, "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate", 0.005, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.99, "Learning rate decays by this much.")
 tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Clip gradients to this norm.")
 tf.app.flags.DEFINE_integer("batch_size", 64, "Batch size to use during training.")
@@ -30,16 +30,16 @@ tf.app.flags.DEFINE_integer("epochs", 100000, "Number of epochs to train.")
 tf.app.flags.DEFINE_float("keep_prob", 0.95, "Keep prob of output.")
 tf.app.flags.DEFINE_integer("state_size", 256, "Size of encoder and decoder hidden layer.")
 tf.app.flags.DEFINE_string("data_dir", "data/", "Data directory")
+tf.app.flags.DEFINE_string("checkpoint_dir", "checkpoints/", "Checkpoint directory")
 tf.app.flags.DEFINE_string("vocab_path", "data/vocab.dat", "Path to vocab file (default: ./data/squad/vocab.dat)")
 tf.app.flags.DEFINE_integer("embedding_size", 100, "Size of the pretrained vocabulary.")
 tf.app.flags.DEFINE_string("embed_path", "",
                            "Path to the trimmed GLoVe embedding (default: ./data/squad/glove.trimmed.{embedding_size}.npz)")
-tf.app.flags.DEFINE_string("train_dir", "train/", "Training directory.")
 tf.app.flags.DEFINE_integer("max_train_data_size", 100,
                             "Limit on the size of training data (0: no limit).")
 tf.app.flags.DEFINE_integer("steps_per_print", 1,
                             "How many training steps to print info.")
-tf.app.flags.DEFINE_integer("steps_per_checkpoint", 200,
+tf.app.flags.DEFINE_integer("steps_per_checkpoint", 1,
                             "How many training steps to do per checkpoint.")
 tf.app.flags.DEFINE_integer("window_batch", 3, "window size / batch size")
 tf.app.flags.DEFINE_string("retrain_embeddings", False, "Whether to retrain word embeddings")
@@ -116,16 +116,24 @@ def read_data(data_config):
     return {"training": train, "validation": val, "question_maxlen": max_q_len, "answer_maxlen": max_a_len}
 
 
-def initialize_model(session, model):
+def initialize_model(saver, session):
     """Create translation model and initialize or load parameters in session."""
-    ckpt = tf.train.get_checkpoint_state(FLAGS.train_dir)
-    if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
-        print("Reading model parameters from %s" % ckpt.model_checkpoint_path)
-        model.saver.restore(session, ckpt.model_checkpoint_path)
+    ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
+    if ckpt and ckpt.model_checkpoint_path:
+        logging.info("Reading model parameters from %s" % ckpt.model_checkpoint_path)
+        ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
+        saver.restore(session, os.path.join(FLAGS.checkpoint_dir, ckpt_name))
     else:
         print("Created model with fresh parameters.")
         session.run([tf.global_variables_initializer(),tf.local_variables_initializer()])
-    return model
+    
+
+def save(saver, sess, step):
+    model_name = "model"
+    if not os.path.exists(FLAGS.checkpoint_dir):
+        os.makedirs(FLAGS.checkpoint_dir)
+    saver.save(sess, os.path.join(FLAGS.checkpoint_dir, model_name),
+               global_step=step)
 
 
 def train():
@@ -150,7 +158,8 @@ def train():
         with tf.device('/gpu:1'):
             #print("Creating %d layers of %d units." % (FLAGS.num_layers, FLAGS.size))
             model = ECM_model.ECMModel(embeddings, rev_vocab, FLAGS)
-            initialize_model(sess, model)
+            saver = tf.train.Saver()
+            initialize_model(saver, sess)
 
             '''tmpModel = initialize_model(sess, model)
             if tmpModel is not None:
@@ -165,10 +174,9 @@ def train():
             
             training_set = dataset['training'] # [question, len(question), answer, len(answer), tag]
             validation_set = dataset['validation']
-
             for epoch in range(FLAGS.epochs):
                 logging.info("="* 10 + " Epoch %d out of %d " + "="* 10, epoch + 1, FLAGS.epochs)
-                batch_num = len(training_set) / FLAGS.batch_size
+                batch_num = int(len(training_set) / FLAGS.batch_size)
                 #prog = Progbar(target=batch_num)
                 avg_loss = 0
                 for i, batch in enumerate(utils.minibatches(training_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
@@ -176,10 +184,14 @@ def train():
                     _, loss = model.train(sess, batch)
                     print('epoch %d [%d/%d], loss: %f' % (epoch, i, batch_num, loss))
                     avg_loss += loss
+                    break
 
                 avg_loss /= batch_num
                 logging.info("Average training loss: {}".format(avg_loss))
                 
+
+                if global_batch_num % FLAGS.steps_per_checkpoint == FLAGS.steps_per_checkpoint - 1:
+                    save(saver, sess, global_batch_num)
                 '''logging.info("-- validation --")
                 batch_num = len(validation_set) / FLAGS.batch_size
                 avg_loss = 0
