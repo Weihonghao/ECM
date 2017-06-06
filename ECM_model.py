@@ -178,6 +178,7 @@ class ECMModel(object):
                 logging.debug('new_internalMemory: %s' % str(new_internalMemory))
                 assert new_internalMemory.get_shape().as_list() == self.internalMemory.get_shape().as_list()
                 self.internalMemory = new_internalMemory
+                logging.debug('after: %s' % "fuck")
 
                 tmp_id, _ = self.external_memory_function(previous_output)
                 previous_output_id = tmp_id#tf.reshape(self.external_memory_function(previous_output), [self.batch_size])
