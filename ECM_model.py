@@ -164,7 +164,7 @@ class ECMModel(object):
         def loop_fn_transition(time, previous_output, previous_state, previous_loop_state):
             # get next state
             print('in trans')
-            def get_next_input(previous_loop_state):
+            def get_next_input():
                 print('in get next input')
 
                 write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
@@ -222,7 +222,30 @@ class ECMModel(object):
             pad_step_embedded = self.pad_step_embedded
             logging.debug('finished: %s' % str(finished))
             logging.debug('pad_step_embedded: %s' % str(pad_step_embedded))
-            inputNow, loop_state = tf.cond(finished, lambda : (pad_step_embedded, None), get_next_input(previous_loop_state))
+
+
+
+            '''write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
+            eps_matrix = self.eps * tf.ones_like(write_gate)
+            eps_write_gate = tf.log(eps_matrix + write_gate)
+            write_one_hot = tf.one_hot(indices=self.emotion_tag, depth=self.emotion_kind)
+            write_one_hot_transpose = tf.transpose(write_one_hot)
+
+            tmpFuck = tf.sign(tf.reshape(tf.reduce_sum(write_one_hot_transpose,axis=1),[self.emotion_kind,1]))
+            logging.debug('Before: %s' % str(tmpFuck))
+            new_internalMemory = previous_loop_state * (1- tmpFuck)
+            logging.debug('new_internalMemory: %s' % str(new_internalMemory))
+            tmpFuck2 = tf.matmul(write_one_hot_transpose, eps_write_gate)
+            logging.debug('TmpFuck2: %s' % str(tmpFuck2))
+            new_internalMemory += tf.exp(tmpFuck)
+            logging.debug('new_internalMemory: %s' % str(new_internalMemory))
+            assert new_internalMemory.get_shape().as_list() == previous_loop_state.get_shape().as_list()
+            previous_loop_state = new_internalMemory
+            logging.debug('after: %s' % "fuck")'''
+
+
+            inputNow, loop_state = tf.cond(finished, lambda : (pad_step_embedded, None), get_next_input)
+            #loop_state =  tf.cond(finished, None, previous_loop_state)
             logging.debug('inputNow: %s' % str(inputNow))
             logging.debug('previous_state: %s' % str(previous_state))
             #loop_state = None
