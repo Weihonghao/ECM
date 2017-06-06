@@ -44,7 +44,8 @@ class ECMModel(object):
         self.decoder_state_size = magic_number
         self.encoder_state_size = int(self.decoder_state_size / 2)
         #input_size = self.batch_size, self.decoder_state_size * 2 + config.embedding_size
-        input_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim + config.embedding_size]
+        #input_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim + config.embedding_size]
+        input_size = [self.batch_size, self.emotion_vector_dim + config.embedding_size]
         self.pad_step_embedded = tf.zeros(input_size)
         self.go_step_embedded = tf.ones(input_size)
 
@@ -198,7 +199,7 @@ class ECMModel(object):
                 tmp_id, _   = self.external_memory_function(previous_output)
                 previous_output_id = tmp_id#tf.reshape(self.external_memory_function(previous_output), [self.batch_size])
                 previous_output_vector = tf.nn.embedding_lookup(self.embeddings, previous_output_id)
-                score = attention_mechanism(previous_state)
+                '''score = attention_mechanism(previous_state)
                 weights = tf.nn.softmax(score)
                 print("here")
                 weights = tf.reshape(weights, [tf.shape(weights)[0], 1, tf.shape(weights)[1]])
@@ -211,14 +212,15 @@ class ECMModel(object):
                 logging.debug('previous_output_vector: %s' % str(previous_output_vector))
                 logging.debug('context: %s' % str(context))
                 attention = tf.layers.dense(inputs=tf.concat([previous_output_vector, context], 1), units=self.IM_size)
-                '''read_gate = tf.sigmoid(attention, name="read_gate")
-                logging.debug('read_gate: %s' % str(read_gate))
-                read_gate_output = tf.nn.embedding_lookup(self.internalMemory,self.emotion_tag)
-                logging.debug('gate output: %s' % str(read_gate_output))'''
+                #read_gate = tf.sigmoid(attention, name="read_gate")
+                #logging.debug('read_gate: %s' % str(read_gate))
+                #read_gate_output = tf.nn.embedding_lookup(self.internalMemory,self.emotion_tag)
+                #logging.debug('gate output: %s' % str(read_gate_output))'''
                 user_emotion_vector = tf.nn.embedding_lookup(self.emotion_vector, self.emotion_tag)
                 logging.debug('user_emotion_vector: %s' % str(user_emotion_vector))
                 next_input = tf.concat(
-                    [context, previous_output_vector, user_emotion_vector], 1)#read_gate_output], 1)
+                    [previous_output_vector, user_emotion_vector], 1)
+                    #[context, previous_output_vector, user_emotion_vector], 1)#read_gate_output], 1)
                 logging.debug('next_input: %s' % str(next_input))
                 return next_input
 
