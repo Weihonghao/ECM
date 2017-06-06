@@ -47,9 +47,9 @@ class ECMModel(object):
         self.IM_size = 256
         self.eps = 1e-5
 
-        with tf.variable_scope("reuse_sel_internalMemory") as scope:
-            scope.reuse_variables()
-            self.internalMemory = tf.get_variable("IMFuck", shape=[self.emotion_kind, self.IM_size],
+        #with tf.variable_scope("reuse_sel_internalMemory") as scope:
+        #scope.reuse_variables()
+        self.internalMemory = tf.get_variable("IMFuck", shape=[self.emotion_kind, self.IM_size],
                                               initializer=tf.contrib.layers.xavier_initializer())
 
         self.vu = tf.get_variable("vu", shape=[self.decoder_state_size, 1], initializer=tf.contrib.layers.xavier_initializer())
@@ -147,7 +147,7 @@ class ECMModel(object):
             initial_input = self.go_step_embedded#tf.nn.embedding_lookup(self.embeddings, GO_emb)
             initial_cell_state = encoder_final_state
             initial_cell_output = None
-            initial_loop_state = None  # we don't need to pass any additional information
+            initial_loop_state = self.internalMemory  # we don't need to pass any additional information
             print('before return initial')
             logging.debug('initial_elements_finished: %s' % str(initial_elements_finished))
             logging.debug('initial_input: %s' % str(initial_input))
@@ -164,8 +164,7 @@ class ECMModel(object):
         def loop_fn_transition(time, previous_output, previous_state, previous_loop_state):
             # get next state
             print('in trans')
-
-            def get_next_input():
+            def get_next_input(previous_loop_state):
                 print('in get next input')
 
                 write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
@@ -176,18 +175,19 @@ class ECMModel(object):
 
                 tmpFuck = tf.sign(tf.reshape(tf.reduce_sum(write_one_hot_transpose,axis=1),[self.emotion_kind,1]))
                 logging.debug('Before: %s' % str(tmpFuck))
-                new_internalMemory = self.internalMemory * (1- tmpFuck)
+                new_internalMemory = previous_loop_state * (1- tmpFuck)
                 logging.debug('new_internalMemory: %s' % str(new_internalMemory))
                 tmpFuck2 = tf.matmul(write_one_hot_transpose, eps_write_gate)
                 logging.debug('TmpFuck2: %s' % str(tmpFuck2))
                 new_internalMemory += tf.exp(tmpFuck)
                 logging.debug('new_internalMemory: %s' % str(new_internalMemory))
-                assert new_internalMemory.get_shape().as_list() == self.internalMemory.get_shape().as_list()
+                assert new_internalMemory.get_shape().as_list() == previous_loop_state.get_shape().as_list()
 
-                #self.internalMemory = new_internalMemory
+                #previous_loop_state = new_internalMemory
 
-                self.internalMemory = new_internalMemory
+                previous_loop_state = new_internalMemory
                 logging.debug('after: %s' % "fuck")
+
 
                 tmp_id, _ = self.external_memory_function(previous_output)
                 previous_output_id = tmp_id#tf.reshape(self.external_memory_function(previous_output), [self.batch_size])
@@ -212,7 +212,7 @@ class ECMModel(object):
                 next_input = tf.concat(
                     [context, previous_output_vector, read_gate_output], 1)
                 logging.debug('next_input: %s' % str(next_input))
-                return next_input
+                return next_input, previous_loop_state
 
             elements_finished = (time >= decoder_length)  # this operation produces boolean tensor of [batch_size]
             # defining if corresponding sequence has ended
@@ -222,10 +222,10 @@ class ECMModel(object):
             pad_step_embedded = self.pad_step_embedded
             logging.debug('finished: %s' % str(finished))
             logging.debug('pad_step_embedded: %s' % str(pad_step_embedded))
-            inputNow = tf.cond(finished, lambda : pad_step_embedded, get_next_input)
+            inputNow, loop_state = tf.cond(finished, lambda : (pad_step_embedded, None), get_next_input(previous_loop_state))
             logging.debug('inputNow: %s' % str(inputNow))
             logging.debug('previous_state: %s' % str(previous_state))
-            loop_state = None
+            #loop_state = None
             output = previous_output
             state = previous_state
             #output, state = decode_cell(inputNow, previous_state)
@@ -258,7 +258,7 @@ class ECMModel(object):
         #assert (decoder_batch_size.as_list()[0] == self.batch_size)
         #assert (decoder_dim.as_list()[0] == self.decoder_state_size)
         decoder_outputs_reshape = tf.reshape(decoder_outputs, [decoder_batch_size,decoder_max_steps , decoder_dim])
-        return decoder_outputs_reshape
+        return decoder_outputs_reshape, decoder_final_state
 
     def external_memory_function(self, decode_state):  # decode_output, shape[batch_size,vocab_size]
         print('flag1')
@@ -322,7 +322,7 @@ class ECMModel(object):
 
             return tf.cast((decode_outputs_ids < (self.emotion_size)), dtype=tf.int64)
 
-        def loss(results):
+        def loss(results, final_IM):
             #logging.debug('logits: %s' % str(results))
             logging.debug('labels: %s' % str(self.answer))
             #answer_all = tf.reshape(self.a, [-1,self.config.embedding_size])
@@ -355,17 +355,17 @@ class ECMModel(object):
             logging.debug('tmp loss 2: %s' % str(tmp))
             loss += tf.reduce_sum(tmp)
             print("loss 2 ptint ", loss)
-            loss += 2 * tf.nn.l2_loss(self.internalMemory)
+            loss += 2 * tf.nn.l2_loss(final_IM)
             print("loss 3 ptint ", loss)
             logging.debug('loss: %s' % str(loss))
             EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
             return loss, EM_output
 
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
-        results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
+        results, final_IM = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
         if not self.forward_only:
             logging.debug('results: %s' % str(results))
-            self.tfloss, self.EM_output = loss(results)
+            self.tfloss, self.EM_output = loss(results, final_IM)
             self.train_op = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(self.tfloss)
         else:
             EM_ids, EM_output = self.external_memory_function(tf.reshape(results,[-1,self.decoder_state_size]))
