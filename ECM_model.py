@@ -28,6 +28,7 @@ class ECMModel(object):
         self.emotion_size = self.vocab_size - self.non_emotion_size
         self.id2word = id2word
         self.forward_only = forward_only
+        self.emotion_kind = 6
         self.emotion_vector = tf.get_variable("emotion vector", shape=[self.emotion_kind, self.emotion_vector_dim],
                                               initializer=tf.contrib.layers.xavier_initializer())
         self.emotion_vector_dim = 100
@@ -44,7 +45,6 @@ class ECMModel(object):
         self.pad_step_embedded = tf.zeros([self.batch_size, self.decoder_state_size * 2 + config.embedding_size])
         self.go_step_embedded = tf.ones([self.batch_size, self.decoder_state_size * 2 + config.embedding_size])
 
-        self.emotion_kind = 6
         self.GO_id = 1
         self.pad_id = 0
         self.IM_size = 256
