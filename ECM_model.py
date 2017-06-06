@@ -379,7 +379,7 @@ class ECMModel(object):
             #tmp = tf.nn.softmax_cross_entropy_with_logits(logits=EM_output, labels=answer_one_hot)
             #logging.debug('tmp loss 1: %s' % str(tmp))
             #loss = tf.reduce_sum(tmp) # self.vocab_label)
-            loss = tf.contrib.seq2seq.sequence_loss(logits = EM_output, targets = self.answer, weights = tf.ones_like(self.answer))
+            loss = tf.contrib.seq2seq.sequence_loss(logits = EM_output, targets = tf.cast(self.answer, dtype=tf.float32), weights = tf.ones_like(self.answer, dtype=tf.float32))
             print("loss 1 ptint ", loss)
             emotion_label = tf.cast((self.answer < (self.non_emotion_size)), dtype=tf.float32)
             emotion_logit = tf.cast((EM_ids < (self.non_emotion_size)), dtype=tf.float32)
