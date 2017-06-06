@@ -30,7 +30,7 @@ class ECMModel(object):
         self.forward_only = forward_only
         self.emotion_kind = 6
         self.emotion_vector_dim = 100
-        self.emotion_vector = tf.get_variable("emotion vector", shape=[self.emotion_kind, self.emotion_vector_dim],
+        self.emotion_vector = tf.get_variable("emotion_vector", shape=[self.emotion_kind, self.emotion_vector_dim],
                                               initializer=tf.contrib.layers.xavier_initializer())
 
 
