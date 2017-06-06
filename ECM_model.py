@@ -12,7 +12,7 @@ import preprocess_data
 from preprocess_data import EOS_ID, PAD_ID, GO_ID, UNK_ID
 import tensorflow as tf
 import numpy as np
-
+import time
 from tensorflow.contrib.rnn import LSTMCell, LSTMStateTuple
 
 class ECMModel(object):
