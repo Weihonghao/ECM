@@ -181,13 +181,13 @@ class ECMModel(object):
                 previous_loop_state = new_internalMemory
                 logging.debug('after: %s' % "fuck")'''
 
-                output_logits = tf.add(tf.matmul(previous_output, self.W), self.b)
-                prediction = tf.argmax(output_logits, axis=1)
-                next_input = tf.nn.embedding_lookup(self.embeddings, prediction)
-                '''tmp_id, _   = self.external_memory_function(previous_output)
-                previous_output_id = tmp_id#tf.reshape(self.external_memory_function(previous_output), [self.batch_size])
+                # output_logits = tf.add(tf.matmul(previous_output, self.W), self.b)
+                # prediction = tf.argmax(output_logits, axis=1)
+                # next_input = tf.nn.embedding_lookup(self.embeddings, prediction)
+
+                previous_output_id, _   = self.external_memory_function(previous_output)
                 previous_output_vector = tf.nn.embedding_lookup(self.embeddings, previous_output_id)
-                score = attention_mechanism(previous_state)
+                score = attention_mechanism(previous_state.c)
                 weights = tf.nn.softmax(score)
                 print("here")
                 weights = tf.reshape(weights, [tf.shape(weights)[0], 1, tf.shape(weights)[1]])
@@ -204,13 +204,14 @@ class ECMModel(object):
                 #logging.debug('read_gate: %s' % str(read_gate))
                 #read_gate_output = tf.nn.embedding_lookup(self.internalMemory,self.emotion_tag)
                 #logging.debug('gate output: %s' % str(read_gate_output))
-                user_emotion_vector = tf.nn.embedding_lookup(self.emotion_vector, self.emotion_tag)
-                logging.debug('user_emotion_vector: %s' % str(user_emotion_vector))
+                # user_emotion_vector = tf.nn.embedding_lookup(self.emotion_vector, self.emotion_tag)
+                # logging.debug('user_emotion_vector: %s' % str(user_emotion_vector))
                 next_input = tf.concat(
+                    # [context, previous_output_vector], 1)
+                    # [context, previous_output_vector, user_emotion_vector], 1)#read_gate_output], 1)
                     [previous_output_vector], 1) #user_emotion_vector
-                    #[context, previous_output_vector, user_emotion_vector], 1)#read_gate_output], 1)
                 logging.debug('next_input: %s' % str(next_input))
-                '''
+
                 return next_input
 
             elements_finished = (time >= decoder_length)  # this operation produces boolean tensor of [batch_size]
@@ -272,29 +273,37 @@ class ECMModel(object):
                 return loop_fn_transition(time, previous_output, previous_state, previous_loop_state)
 
         decode_cell = tf.contrib.rnn.LSTMCell(self.decoder_state_size)
-        # attention_mechanism = tf.contrib.seq2seq.LuongAttention(self.decoder_state_size, encoder_outputs)
+        attention_mechanism = tf.contrib.seq2seq.LuongAttention(self.decoder_state_size, tf.transpose(encoder_outputs, [1, 0, 2]))
         decoder_outputs_ta, decoder_final_state, decoder_final_loop_state = tf.nn.raw_rnn(decode_cell, loop_fn)
         decoder_outputs = decoder_outputs_ta.stack()
-        # decoder_max_steps, decoder_batch_size, decoder_dim = tf.unstack(tf.shape(decoder_outputs))#decoder_outputs.get_shape().as_list()#tf.unstack(tf.shape(decoder_outputs))
+        decoder_max_steps, decoder_batch_size, decoder_dim = tf.unstack(tf.shape(decoder_outputs))#decoder_outputs.get_shape().as_list()#tf.unstack(tf.shape(decoder_outputs))
         #assert (decoder_batch_size.as_list()[0] == self.batch_size)
-        # decoder_outputs_flat = tf.reshape(decoder_outputs, (-1, decoder_dim))
-        # decoder_logits_flat = tf.add(tf.matmul(decoder_outputs_flat, self.W), self.b)
-        # decoder_logits = tf.reshape(decoder_logits_flat, (decoder_max_steps, decoder_batch_size, self.vocab_size))
-        # decoder_prediction = tf.argmax(decoder_logits, 2)
-        # return decoder_logits, decoder_prediction
+        decoder_outputs_flat = tf.reshape(decoder_outputs, (-1, decoder_dim))
+        decoder_logits_flat = tf.add(tf.matmul(decoder_outputs_flat, self.W), self.b)
+        decoder_logits = tf.reshape(decoder_logits_flat, (decoder_max_steps, decoder_batch_size, self.vocab_size))
+        decoder_prediction = tf.argmax(decoder_logits, 2)
+        return decoder_logits, decoder_prediction
 
-        decoder_outputs_reshape = tf.transpose(decoder_outputs, [1, 0, 2]) # [batch_size, max_len, decoder_dim]
-        return decoder_outputs_reshape, decoder_final_loop_state
+        # decoder_outputs_reshape = tf.transpose(decoder_outputs, [1, 0, 2]) # [batch_size, max_len, decoder_dim]
+        # return decoder_outputs_reshape, decoder_final_loop_state
 
-    def external_memory_function(self, decoder_outputs):  # decode_output, shape[batch_size, max_len, decoder_dim]
+    def external_memory_function_batch(self, decoder_outputs):  # decode_output, shape[max_len, batch_size, decoder_dim]
         #decode_output = tf.reshape(in_decode_output, [self.batch_size,-1,self.decoder_state_size])
-        decoder_batch_size, decoder_max_steps, decoder_dim = tf.unstack(tf.shape(decoder_outputs))
+        decoder_max_steps, decoder_batch_size, decoder_dim = tf.unstack(tf.shape(decoder_outputs))
         decoder_outputs_flat = tf.reshape(decoder_outputs, (-1, decoder_dim))
         gto_flat = tf.sigmoid(tf.matmul(decoder_outputs_flat, self.vu))
-        gto = tf.reshape(gto_flat, (decoder_batch_size, decoder_max_steps, 1))
+        gto = tf.reshape(gto_flat, (decoder_max_steps, decoder_batch_size, 1))
         decode_output = tf.layers.dense(decoder_outputs, self.vocab_size, name="state2output")
-        boost_output = tf.concat([gto * decode_output[:, :,:self.non_emotion_size], (1 - gto) * decode_output[:,:, self.non_emotion_size:]], 2)
-        prediction = tf.argmax(boost_output, axis=2)  # [batch_size,1]
+        boost_output = tf.concat([gto * decode_output[:, :, :self.non_emotion_size], (1 - gto) * decode_output[:,:, self.non_emotion_size:]], 2)
+        prediction = tf.argmax(boost_output, axis=2)  # [max_time, batch, 1]
+        return prediction, boost_output
+
+    def external_memory_function(self, decoder_output):  # decode_output, shape[batch_size, decoder_dim]
+        decoder_batch_size, decoder_dim = tf.unstack(tf.shape(decoder_output))
+        gto = tf.sigmoid(tf.matmul(decoder_output, self.vu))
+        decode_output_logits = tf.add(tf.matmul(decoder_output, self.W), self.b)
+        boost_output = tf.concat([gto * decoder_output[:, :self.non_emotion_size], (1 - gto) * decoder_output[:, self.non_emotion_size:]], 1)
+        prediction = tf.argmax(boost_output, axis=1)  # [batch, 1]
         return prediction, boost_output
 
     def create_feed_dict(self, question_batch, question_len_batch, emotion_tag_batch, answer_batch=None,
@@ -341,22 +350,17 @@ class ECMModel(object):
         return feed_dict
 
     def setup_system(self):
-        def loss(decoder_output, final_IM):
+        def loss(EM_ids, EM_output, final_IM):
             #logging.debug('logits: %s' % str(results))
             logging.debug('labels: %s' % str(self.answer))
             #answer_all = tf.reshape(self.a, [-1,self.config.embedding_size])
-
-            answer_one_hot = tf.one_hot(indices= self.answer, depth= self.vocab_size, on_value= 1, off_value=0,axis=-1)#, dtype=tf.float32)
-            answer_one_hot = tf.cast(answer_one_hot, dtype=tf.float32)
             #answer_one_hot = tf.reshape(answer_one_hot,[-1, self.vocab_size])
             #results = tf.reshape(results, [-1,results.get_shape().as_list()[2]])
             #results = tf.cast(self.external_memory_function(results), dtype=tf.float32)
-            EM_ids, EM_output = self.external_memory_function(decoder_output)
-            EM_ids = tf.reshape(EM_ids,[self.batch_size,-1])
-            EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
-            logging.debug('logits: %s' % str(EM_output))
-            logging.debug('labels: %s' % str(answer_one_hot))
-            logging.debug('EM_ID: %s' % str(EM_ids))
+            
+            # EM_ids = tf.reshape(EM_ids,[self.batch_size,-1])
+            # EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
+
 
             #tmp = tf.nn.softmax_cross_entropy_with_logits(logits=EM_output, labels=answer_one_hot)
             #logging.debug('tmp loss 1: %s' % str(tmp))
@@ -375,27 +379,22 @@ class ECMModel(object):
             #loss += 2 * tf.nn.l2_loss(final_IM)
             print("loss 3 print ", loss)
             logging.debug('loss: %s' % str(loss))
-            EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
-            return loss, EM_output
+            return loss
 
         encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
-        decoder_output, final_IM = self.decode(encoder_outputs, encoder_final_state, self.answer_len) # [batch_size, max_len, vocab_size]
+        decoder_output, decoder_prediction = self.decode(encoder_outputs, encoder_final_state, self.answer_len) # [batch_size, max_len, vocab_size]
         
-        # mask = tf.cast(tf.sequence_mask(self.answer_len, tf.shape(self.answer)[0]), dtype=tf.float32)
-        # self.tfloss = tf.contrib.seq2seq.sequence_loss(logits=tf.transpose(decoder_logits, [1, 0, 2]), targets=tf.transpose(self.answer, [1, 0]), weights = mask)
-        # loss_sum = tf.summary.scalar("loss", self.tfloss)
-        # self.train_op = tf.train.AdamOptimizer().minimize(self.tfloss)
-        # self.tfids = decoder_prediction
-        if not self.forward_only:
-            logging.debug('results: %s' % str(decoder_output))
-            self.tfloss, self.EM_output = loss(decoder_output, final_IM)
-            loss_sum = tf.summary.scalar("loss", self.tfloss)
-            self.train_op = tf.train.AdamOptimizer(self.config.learning_rate, beta1=0.5).minimize(self.tfloss)
-        else:
-            EM_ids, EM_output = self.external_memory_function(tf.reshape(decoder_output,[-1,self.decoder_state_size]))
-            self.EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
-        self.tfids = tf.argmax(self.EM_output, axis=2)
-        logging.debug('self.tfids: %s' % str(self.tfids))
+        mask = tf.cast(tf.sequence_mask(self.answer_len, tf.shape(self.answer)[0]), dtype=tf.float32)
+        self.tfloss = tf.contrib.seq2seq.sequence_loss(logits=tf.transpose(decoder_output, [1, 0, 2]), targets=tf.transpose(self.answer, [1, 0]), weights = mask)
+        loss_sum = tf.summary.scalar("loss", self.tfloss)
+        self.train_op = tf.train.AdamOptimizer().minimize(self.tfloss)
+        self.tfids = decoder_prediction
+        # if not self.forward_only:
+        #     logging.debug('results: %s' % str(EM_output))
+        #     self.tfloss = loss(self.tfids, EM_output, final_IM)
+        #     loss_sum = tf.summary.scalar("loss", self.tfloss)
+        #     self.train_op = tf.train.AdamOptimizer(self.config.learning_rate, beta1=0.5).minimize(self.tfloss)
+
 
     def train(self, sess, training_set, tensorboard=False):
         question_batch, question_len_batch, answer_batch, answer_len_batch, tag_batch = training_set
@@ -434,5 +433,5 @@ class ECMModel(object):
         input_feed = self.create_feed_dict(question_batch, question_len_batch, tag_batch, answer_batch,
                                            answer_len_batch, is_train=False)
         loss, ids = sess.run([self.tfloss, self.tfids], feed_dict=input_feed)
-        return loss, ids
+        return loss, ids.T
         # [[self.id2word[each] for each in each_list] for each_list in ids]
