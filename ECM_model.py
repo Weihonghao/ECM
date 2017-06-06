@@ -25,7 +25,7 @@ class ECMModel(object):
         #print("batch size", self.batch_size)
         self.vocab_size = config.vocab_size
         self.non_emotion_size = config.non_emotion_size
-        self.emotion_size = self.vocab_size - self.non_emotion_size
+        #self.emotion_size = self.vocab_size - self.non_emotion_size
         self.id2word = id2word
         self.forward_only = forward_only
         self.emotion_kind = 6
@@ -295,14 +295,15 @@ class ECMModel(object):
     def external_memory_function(self, decode_state):  # decode_output, shape[batch_size,decode_size]
         print('flag1')
         #decode_output = tf.reshape(in_decode_output, [self.batch_size,-1,self.decoder_state_size])
-        gto = tf.sigmoid(tf.reduce_sum(tf.matmul(decode_state, self.vu),axis= 1))
-        gto = tf.reshape(gto, [tf.shape(gto)[0],1])
+        #gto = tf.sigmoid(tf.reduce_sum(tf.matmul(decode_state, self.vu),axis= 1))
+        #gto = tf.reshape(gto, [tf.shape(gto)[0],1])
+        gto = tf.sigmoid(tf.matmul(decode_state, self.vu))
         logging.debug('gto: %s' % str(gto))
         print('flag2')
-        emotion_num = self.emotion_size
+        #emotion_num = self.emotion_size
         decode_output = tf.layers.dense(decode_state, self.vocab_size, name="state2output")
         print('flag3')
-        arg = tf.argmax(tf.concat([gto * decode_output[:,:emotion_num], (1 - gto) * decode_output[:, emotion_num:]],
+        arg = tf.argmax(tf.concat([ (1-gto) * decode_output[:,:self.non_emotion_size], gto * decode_output[:, self.non_emotion_size:]],
                                    1), axis=1)  # [batch_size,1]
         logging.debug('arg: %s' % str(arg))
         return arg, decode_output
@@ -354,7 +355,7 @@ class ECMModel(object):
     def setup_system(self):
         def emotion_distribution(decode_outputs_ids):
 
-            return tf.cast((decode_outputs_ids < (self.emotion_size)), dtype=tf.int64)
+            return tf.cast((decode_outputs_ids < (self.non_emotion_size)), dtype=tf.int64)
 
         def loss(results, final_IM):
             #logging.debug('logits: %s' % str(results))
@@ -377,8 +378,8 @@ class ECMModel(object):
             logging.debug('tmp loss 1: %s' % str(tmp))
             loss = tf.reduce_sum(tmp) # self.vocab_label)
             print("loss 1 ptint ", loss)
-            emotion_label = tf.cast((self.answer < (self.emotion_size)), dtype=tf.float32)
-            emotion_logit = tf.cast((EM_ids < (self.emotion_size)), dtype=tf.float32)
+            emotion_label = tf.cast((self.answer < (self.non_emotion_size)), dtype=tf.float32)
+            emotion_logit = tf.cast((EM_ids < (self.non_emotion_size)), dtype=tf.float32)
 
             logging.debug('emotion logits: %s' % str(emotion_logit))
             logging.debug('emotion labels: %s' % str(emotion_label))
