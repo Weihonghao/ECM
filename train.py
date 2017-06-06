@@ -192,7 +192,7 @@ def train():
                         summary_writer.add_summary(merged, global_batch_num)
                     else:
                         loss = model.train(sess, batch, tensorboard=False)
-                    print('epoch %d [%d/%d], loss: %f' % (epoch, i, batch_num, loss))
+                    #print('epoch %d [%d/%d], loss: %f' % (epoch, i, batch_num, loss))
                     avg_loss += loss
                 print('total time '+ str(datetime.timedelta(seconds=(time.time()-start_time))))
                 print('average time '+ str(datetime.timedelta(seconds=((time.time()-start_time)/(epoch+1)))))
