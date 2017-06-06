@@ -16,6 +16,7 @@ import tensorflow as tf
 from os.path import join as pjoin
 
 import preprocess_data
+from preprocess_data import EOS_ID
 import utils
 import seq2seq_model
 from tensorflow.python.platform import gfile
@@ -23,14 +24,14 @@ from tensorflow.python.platform import gfile
 logging.basicConfig(level=logging.INFO)
 
 
-tf.app.flags.DEFINE_float("learning_rate", 0.02, "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate", 0.001, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.99, "Learning rate decays by this much.")
 tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Clip gradients to this norm.")
-tf.app.flags.DEFINE_integer("batch_size", 64, "Batch size to use during training.")
+tf.app.flags.DEFINE_integer("batch_size", 2, "Batch size to use during training.")
 tf.app.flags.DEFINE_integer("epochs", 100000, "Number of epochs to train.")
 tf.app.flags.DEFINE_float("keep_prob", 0.95, "Keep prob of output.")
 tf.app.flags.DEFINE_integer("state_size", 256, "Size of encoder and decoder hidden layer.")
-tf.app.flags.DEFINE_string("data_dir", "data/", "Data directory")
+tf.app.flags.DEFINE_string("data_dir", "testdata/", "Data directory")
 tf.app.flags.DEFINE_string("checkpoint_dir", "checkpoints/", "Checkpoint directory")
 tf.app.flags.DEFINE_string("log_dir", "log/", "Tensorboard log directory")
 tf.app.flags.DEFINE_string("vocab_path", "data/vocab.dat", "Path to vocab file (default: ./data/squad/vocab.dat)")
@@ -43,7 +44,7 @@ tf.app.flags.DEFINE_integer("steps_per_print", 1,
                             "How many training steps to print info.")
 tf.app.flags.DEFINE_integer("steps_per_tensorboard", 100,
                             "How many training steps to write tensorboard.")
-tf.app.flags.DEFINE_integer("steps_per_checkpoint", 1,
+tf.app.flags.DEFINE_integer("steps_per_checkpoint", 100,
                             "How many training steps to do per checkpoint.")
 tf.app.flags.DEFINE_integer("window_batch", 3, "window size / batch size")
 tf.app.flags.DEFINE_string("retrain_embeddings", False, "Whether to retrain word embeddings")
@@ -66,14 +67,14 @@ class DataConfig(object):
     """docstring for DataDir"""
 
     def __init__(self, data_dir):
-        self.train_from = pjoin(data_dir, 'train.ids.from')
-        self.train_to = pjoin(data_dir, 'train.ids.to')
-        self.train_tag = pjoin(data_dir, 'train.tag')
+        self.train_from = pjoin(data_dir, 'train20.ids.from')
+        self.train_to = pjoin(data_dir, 'train20.ids.to')
+        self.train_tag = pjoin(data_dir, 'train20.tag')
 
 
-        self.val_from = pjoin(data_dir, 'val.ids.from')
-        self.val_to = pjoin(data_dir, 'val.ids.to')
-        self.val_tag = pjoin(data_dir, 'val.tag')
+        self.val_from = pjoin(data_dir, 'train20.ids.from')
+        self.val_to = pjoin(data_dir, 'train20.ids.to')
+        self.val_tag = pjoin(data_dir, 'train20.tag')
         self.test_from = pjoin(data_dir, 'test.ids.from')
         self.test_to = pjoin(data_dir, 'test.ids.to')
         self.test_tag = pjoin(data_dir, 'test.tag')
@@ -88,8 +89,9 @@ def read_data(data_config):
          gfile.GFile(data_config.train_to, mode="rb") as a_file, \
          gfile.GFile(data_config.train_tag, mode="rb") as t_file:
             for (q, a, t) in zip(q_file, a_file, t_file):
-                question = strip(q)
+                question = strip(q) 
                 answer = strip(a)
+                answer.append(EOS_ID)
                 tag = strip(t)
                 
                 sample = [question, len(question), answer, len(answer), tag]
@@ -106,6 +108,7 @@ def read_data(data_config):
             for (q, a, t) in zip(q_file, a_file, t_file):
                 question = strip(q)
                 answer = strip(a)
+                answer.append(EOS_ID)
                 tag = strip(t)
 
                 sample = [question, len(question), answer, len(answer), tag]
@@ -184,7 +187,7 @@ def train():
                 batch_num = int(len(training_set) / FLAGS.batch_size)
                 #prog = Progbar(target=batch_num)
                 avg_loss = 0
-                for i, batch in enumerate(utils.minibatches(training_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
+                for i, batch in enumerate(utils.minibatches(training_set, FLAGS.batch_size)):
                     global_batch_num = batch_num * epoch + i
                     time1 = time.time()
                     if global_batch_num % FLAGS.steps_per_tensorboard == FLAGS.steps_per_tensorboard - 1:
@@ -193,10 +196,11 @@ def train():
                     else:
                         loss = model.train(sess, batch, tensorboard=False)
                     print('epoch %d [%d/%d], loss: %f' % (epoch, i, batch_num, loss))
+                    # break
                     avg_loss += loss
                 print('total time '+ str(datetime.timedelta(seconds=(time.time()-start_time))))
                 print('average time '+ str(datetime.timedelta(seconds=((time.time()-start_time)/(epoch+1)))))
-
+                # break
                 avg_loss /= batch_num
                 logging.info("Average training loss: {}".format(avg_loss))
                 
@@ -210,6 +214,7 @@ def train():
                     global_batch_num = batch_num * epoch + i
                     loss, ids = model.test(sess, batch)
                     print('loss: %f' % (loss))
+                    print(batch[2].T)
                     print(ids)
                     if co < 10:
                         co += 1
