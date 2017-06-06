@@ -43,8 +43,10 @@ class ECMModel(object):
 
         self.decoder_state_size = magic_number
         self.encoder_state_size = int(self.decoder_state_size / 2)
-        self.pad_step_embedded = tf.zeros([self.batch_size, self.decoder_state_size * 2 + config.embedding_size])
-        self.go_step_embedded = tf.ones([self.batch_size, self.decoder_state_size * 2 + config.embedding_size])
+        #input_size = self.batch_size, self.decoder_state_size * 2 + config.embedding_size
+        input_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim + config.embedding_size]
+        self.pad_step_embedded = tf.zeros(input_size)
+        self.go_step_embedded = tf.ones(input_size)
 
         self.GO_id = 1
         self.pad_id = 0
