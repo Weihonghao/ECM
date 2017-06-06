@@ -63,17 +63,12 @@ class ECMModel(object):
 
         # self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_placement=True))
 
-
-        self.position = 0
         self.question = tf.placeholder(tf.int32, shape=[None, None], name='question')
         self.question_len = tf.placeholder(tf.int32, shape=[None], name='question_len')
         if not self.forward_only:
             self.answer = tf.placeholder(tf.int32, shape=[None, None], name='answer')
             self.answer_len = tf.placeholder(tf.int32, shape=[None], name='answer_len')
             self.LA = tf.placeholder(dtype=tf.int32, name='LA', shape=())  # batch
-            self.max_id = tf.zeros([self.batch_size, self.LA])
-        else:
-            self.max_id = tf.zeros([self.batch_size, 10])
         self.emotion_tag = tf.placeholder(tf.int32, shape=[None], name='emotion_tag')
         self.dropout_placeholder = tf.placeholder(dtype=tf.float32, name="dropout", shape=())
         self.LQ = tf.placeholder(dtype=tf.int32, name='LQ', shape=())  # batch
@@ -299,8 +294,6 @@ class ECMModel(object):
 
     def external_memory_function(self, decode_state):  # decode_output, shape[batch_size,decode_size]
         print('flag1')
-
-
         #decode_output = tf.reshape(in_decode_output, [self.batch_size,-1,self.decoder_state_size])
         #gto = tf.sigmoid(tf.reduce_sum(tf.matmul(decode_state, self.vu),axis= 1))
         #gto = tf.reshape(gto, [tf.shape(gto)[0],1])
@@ -371,12 +364,12 @@ class ECMModel(object):
 
             answer_one_hot = tf.one_hot(indices= self.answer, depth= self.vocab_size, on_value= 1, off_value=0,axis=-1)#, dtype=tf.float32)
             answer_one_hot = tf.cast(answer_one_hot, dtype=tf.float32)
-            answer_one_hot = tf.reshape(answer_one_hot,[-1, self.vocab_size])
+            #answer_one_hot = tf.reshape(answer_one_hot,[-1, self.vocab_size])
             #results = tf.reshape(results, [-1,results.get_shape().as_list()[2]])
             #results = tf.cast(self.external_memory_function(results), dtype=tf.float32)
             EM_ids, EM_output = self.external_memory_function(tf.reshape(results,[-1,self.decoder_state_size]))
             EM_ids = tf.reshape(EM_ids,[self.batch_size,-1])
-            #EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
+            EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
             logging.debug('logits: %s' % str(EM_output))
             logging.debug('labels: %s' % str(answer_one_hot))
             logging.debug('EM_ID: %s' % str(EM_ids))
@@ -397,7 +390,7 @@ class ECMModel(object):
             logging.debug('tmp loss 2: %s' % str(tmp))
             loss += tf.reduce_sum(tmp)
             print("loss 2 ptint ", loss)
-            loss += 2 * tf.nn.l2_loss(final_IM)
+            #loss += 2 * tf.nn.l2_loss(final_IM)
             print("loss 3 ptint ", loss)
             logging.debug('loss: %s' % str(loss))
             EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
