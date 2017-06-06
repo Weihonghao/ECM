@@ -7,6 +7,7 @@ import os
 import random
 import sys
 import time
+import datetime
 import logging
 import ECM_model
 
@@ -22,7 +23,7 @@ from tensorflow.python.platform import gfile
 logging.basicConfig(level=logging.INFO)
 
 
-tf.app.flags.DEFINE_float("learning_rate", 0.005, "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate", 0.02, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.99, "Learning rate decays by this much.")
 tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Clip gradients to this norm.")
 tf.app.flags.DEFINE_integer("batch_size", 64, "Batch size to use during training.")
@@ -140,6 +141,7 @@ def save(saver, sess, step):
 
 def train():
     """Train a en->fr translation model using WMT data."""
+    start_time = time.time()
     data_config = DataConfig(FLAGS.data_dir)
     logFile = open('data/log.txt', 'w')
     embed_path = FLAGS.embed_path or pjoin("data", "glove.trimmed.{}.npz".format(FLAGS.embedding_size))
@@ -184,6 +186,7 @@ def train():
                 avg_loss = 0
                 for i, batch in enumerate(utils.minibatches(training_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
                     global_batch_num = batch_num * epoch + i
+                    time1 = time.time()
                     if global_batch_num % FLAGS.steps_per_tensorboard == FLAGS.steps_per_tensorboard - 1:
                         run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
                         run_metadata = tf.RunMetadata()
@@ -194,6 +197,8 @@ def train():
                         loss = model.train(sess, batch, tensorboard=False)
                     print('epoch %d [%d/%d], loss: %f' % (epoch, i, batch_num, loss))
                     avg_loss += loss
+                print('total time '+ str(datetime.timedelta(seconds=(time.time()-start_time))))
+                print('average time '+ str(datetime.timedelta(seconds=((time.time()-start_time)/(epoch+1)))))
 
                 avg_loss /= batch_num
                 logging.info("Average training loss: {}".format(avg_loss))
