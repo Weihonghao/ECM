@@ -213,11 +213,11 @@ def train():
                     global_batch_num = batch_num * epoch + i
                     loss, ids = model.test(sess, batch)
                     print('loss: %f' % (loss))
-                    print(ids)'''
+                    print(ids)
                     
                     #avg_loss += loss
                 #avg_loss /= batch_num
-                #logging.info("Average validation loss: {}".format(avg_loss))
+                #logging.info("Average validation loss: {}".format(avg_loss))'''
                 
 
 

@@ -28,6 +28,9 @@ class ECMModel(object):
         self.emotion_size = self.vocab_size - self.non_emotion_size
         self.id2word = id2word
         self.forward_only = forward_only
+        self.emotion_vector = tf.get_variable("emotion vector", shape=[self.emotion_kind, self.emotion_vector_dim],
+                                              initializer=tf.contrib.layers.xavier_initializer())
+        self.emotion_vector_dim = 100
 
         '''if (self.config.vocab_size % 2 == 1):
             self.decoder_state_size = config.vocab_size + 1
@@ -205,12 +208,12 @@ class ECMModel(object):
                 logging.debug('previous_output_vector: %s' % str(previous_output_vector))
                 logging.debug('context: %s' % str(context))
                 attention = tf.layers.dense(inputs=tf.concat([previous_output_vector, context], 1), units=self.IM_size)
-                read_gate = tf.sigmoid(attention, name="read_gate")
+                '''read_gate = tf.sigmoid(attention, name="read_gate")
                 logging.debug('read_gate: %s' % str(read_gate))
                 read_gate_output = tf.nn.embedding_lookup(self.internalMemory,self.emotion_tag)
-                logging.debug('gate output: %s' % str(read_gate_output))
+                logging.debug('gate output: %s' % str(read_gate_output))'''
                 next_input = tf.concat(
-                    [context, previous_output_vector, read_gate_output], 1)
+                    [context, previous_output_vector, self.emotion_vector], 1)#read_gate_output], 1)
                 logging.debug('next_input: %s' % str(next_input))
                 return next_input
 
@@ -224,7 +227,7 @@ class ECMModel(object):
             logging.debug('pad_step_embedded: %s' % str(pad_step_embedded))
 
 
-            if previous_state is not None:
+            '''if previous_state is not None:
 
                 write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
                 eps_matrix = self.eps * tf.ones_like(write_gate)
@@ -242,7 +245,7 @@ class ECMModel(object):
                 logging.debug('new_internalMemory: %s' % str(new_internalMemory))
                 assert new_internalMemory.get_shape().as_list() == previous_loop_state.get_shape().as_list()
                 previous_loop_state = new_internalMemory
-                logging.debug('after: %s' % "fuck")
+                logging.debug('after: %s' % "fuck")'''
 
 
             inputNow = tf.cond(finished, lambda : pad_step_embedded , get_next_input)
