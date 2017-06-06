@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="354b68d9-9d1c-4836-b030-c511e7952c42" name="Default" comment="">
+      <change type="DELETED" beforePath="$PROJECT_DIR$/ECM_model.py" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ECM_model.py" afterPath="$PROJECT_DIR$/ECM_model.py" />
     </list>
     <ignored path="ECM.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -25,25 +25,36 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file leaf-file-name="preprocess_data.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/preprocess_data.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="-16.666666">
+              <caret line="41" column="43" selection-start-line="41" selection-start-column="43" selection-end-line="41" selection-end-column="43" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file leaf-file-name="ECM_model.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/ECM_model.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="3.0199335">
-              <caret line="277" column="115" selection-start-line="277" selection-start-column="115" selection-end-line="277" selection-end-column="115" />
+            <state vertical-scroll-proportion="0.7513043">
+              <caret line="105" column="0" selection-start-line="105" selection-start-column="0" selection-end-line="105" selection-end-column="0" />
               <folding>
                 <element signature="e#0#38#0" expanded="true" />
-                <marker date="1496785401000" expanded="true" signature="20053:20119" placeholder="..." />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="preprocess_data.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/preprocess_data.py">
+      <file leaf-file-name="model_backup.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/model_backup.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="24" column="14" selection-start-line="24" selection-start-column="14" selection-end-line="24" selection-end-column="14" />
-              <folding />
+            <state vertical-scroll-proportion="-2.0">
+              <caret line="35" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="446" selection-end-column="0" />
+              <folding>
+                <element signature="e#0#38#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -409,17 +420,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/ECM_model.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#38#0" expanded="true" />
-            <marker date="1496785401000" expanded="true" signature="20053:20119" placeholder="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/preprocess_data.py">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -454,17 +454,6 @@
           <caret line="25" column="0" selection-start-line="25" selection-start-column="0" selection-end-line="25" selection-end-column="0" />
           <folding>
             <element signature="e#0#21#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/ECM_model.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#38#0" expanded="true" />
-            <marker date="1496785401000" expanded="true" signature="20053:20119" placeholder="..." />
           </folding>
         </state>
       </provider>
@@ -519,8 +508,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/preprocess_data.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="24" column="14" selection-start-line="24" selection-start-column="14" selection-end-line="24" selection-end-column="14" />
+        <state vertical-scroll-proportion="-16.666666">
+          <caret line="41" column="43" selection-start-line="41" selection-start-column="43" selection-end-line="41" selection-end-column="43" />
           <folding />
         </state>
       </provider>
@@ -535,13 +524,22 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ECM_model.py">
+    <entry file="file://$PROJECT_DIR$/model_backup.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="3.0199335">
-          <caret line="277" column="115" selection-start-line="277" selection-start-column="115" selection-end-line="277" selection-end-column="115" />
+        <state vertical-scroll-proportion="-2.0">
+          <caret line="35" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="446" selection-end-column="0" />
           <folding>
             <element signature="e#0#38#0" expanded="true" />
-            <marker date="1496785401000" expanded="true" signature="20053:20119" placeholder="..." />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ECM_model.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.7513043">
+          <caret line="105" column="0" selection-start-line="105" selection-start-column="0" selection-end-line="105" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#38#0" expanded="true" />
           </folding>
         </state>
       </provider>
