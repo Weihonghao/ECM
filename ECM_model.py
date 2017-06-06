@@ -153,7 +153,7 @@ class ECMModel(object):
             initial_input = self.go_step_embedded#tf.nn.embedding_lookup(self.embeddings, GO_emb)
             initial_cell_state = encoder_final_state
             initial_cell_output = None
-            initial_loop_state = self.internalMemory  # we don't need to pass any additional information
+            initial_loop_state = None#self.internalMemory  # we don't need to pass any additional information
             print('before return initial')
             logging.debug('initial_elements_finished: %s' % str(initial_elements_finished))
             logging.debug('initial_input: %s' % str(initial_input))
@@ -292,10 +292,11 @@ class ECMModel(object):
         decoder_outputs_reshape = tf.reshape(decoder_outputs, [decoder_batch_size,decoder_max_steps , decoder_dim])
         return decoder_outputs_reshape, decoder_final_state
 
-    def external_memory_function(self, decode_state):  # decode_output, shape[batch_size,vocab_size]
+    def external_memory_function(self, decode_state):  # decode_output, shape[batch_size,decode_size]
         print('flag1')
         #decode_output = tf.reshape(in_decode_output, [self.batch_size,-1,self.decoder_state_size])
-        gto = tf.sigmoid(tf.reduce_sum(tf.matmul(decode_state, self.vu)))
+        gto = tf.sigmoid(tf.reduce_sum(tf.matmul(decode_state, self.vu),axis= 1))
+        logging.debug('gto: %s' % str(gto))
         print('flag2')
         emotion_num = self.emotion_size
         decode_output = tf.layers.dense(decode_state, self.vocab_size, name="state2output")
