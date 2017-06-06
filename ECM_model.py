@@ -166,7 +166,7 @@ class ECMModel(object):
             def get_next_input():
                 print('in get next input')
 
-                '''write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
+                write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
                 eps_matrix = self.eps * tf.ones_like(write_gate)
                 eps_write_gate = tf.log(eps_matrix + write_gate)
                 write_one_hot = tf.one_hot(indices=self.emotion_tag, depth=self.emotion_kind)
@@ -181,8 +181,8 @@ class ECMModel(object):
                 new_internalMemory += tf.exp(tmpFuck)
                 logging.debug('new_internalMemory: %s' % str(new_internalMemory))
                 assert new_internalMemory.get_shape().as_list() == self.internalMemory.get_shape().as_list()
-                self.internalMemory = new_internalMemory
-                logging.debug('after: %s' % "fuck")'''
+                #self.internalMemory = new_internalMemory
+                logging.debug('after: %s' % "fuck")
 
                 tmp_id, _ = self.external_memory_function(previous_output)
                 previous_output_id = tmp_id#tf.reshape(self.external_memory_function(previous_output), [self.batch_size])
