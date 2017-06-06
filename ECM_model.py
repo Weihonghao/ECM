@@ -351,9 +351,10 @@ class ECMModel(object):
             logging.debug('loss: %s' % str(loss))
             EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
             return loss, EM_output
+
+        encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
+        results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
         if not self.forward_only:
-            encoder_outputs, encoder_final_state = self.encode(self.q, self.question_len, None, self.dropout_placeholder)
-            results = self.decode(encoder_outputs, encoder_final_state, self.answer_len)
             logging.debug('results: %s' % str(results))
             self.tfloss, self.EM_output = loss(results)
             self.train_op = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(self.tfloss)
