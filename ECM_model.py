@@ -181,7 +181,11 @@ class ECMModel(object):
                 new_internalMemory += tf.exp(tmpFuck)
                 logging.debug('new_internalMemory: %s' % str(new_internalMemory))
                 assert new_internalMemory.get_shape().as_list() == self.internalMemory.get_shape().as_list()
+
                 #self.internalMemory = new_internalMemory
+                with tf.variable_scope("reuse_sel_internalMemory") as scope:
+                    scope.reuse_variables()
+                    self.internalMemory = new_internalMemory
                 logging.debug('after: %s' % "fuck")
 
                 tmp_id, _ = self.external_memory_function(previous_output)
