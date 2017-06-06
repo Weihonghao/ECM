@@ -23,7 +23,7 @@ from tensorflow.python.platform import gfile
 logging.basicConfig(level=logging.INFO)
 
 
-tf.app.flags.DEFINE_float("learning_rate", 0.02, "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate", 0.1, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.99, "Learning rate decays by this much.")
 tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Clip gradients to this norm.")
 tf.app.flags.DEFINE_integer("batch_size", 64, "Batch size to use during training.")
