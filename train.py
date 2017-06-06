@@ -26,7 +26,7 @@ tf.app.flags.DEFINE_float("learning_rate", 0.01, "Learning rate.")
 tf.app.flags.DEFINE_float("learning_rate_decay_factor", 0.99, "Learning rate decays by this much.")
 tf.app.flags.DEFINE_float("max_gradient_norm", 5.0, "Clip gradients to this norm.")
 tf.app.flags.DEFINE_integer("batch_size", 64, "Batch size to use during training.")
-tf.app.flags.DEFINE_integer("epochs", 1, "Number of epochs to train.")
+tf.app.flags.DEFINE_integer("epochs", 100000, "Number of epochs to train.")
 tf.app.flags.DEFINE_float("keep_prob", 0.95, "Keep prob of output.")
 tf.app.flags.DEFINE_integer("state_size", 256, "Size of encoder and decoder hidden layer.")
 tf.app.flags.DEFINE_string("data_dir", "data/", "Data directory")
@@ -180,14 +180,14 @@ def train():
                 avg_loss /= batch_num
                 logging.info("Average training loss: {}".format(avg_loss))
                 
-                logging.info("-- validation --")
+                '''logging.info("-- validation --")
                 batch_num = len(validation_set) / FLAGS.batch_size
                 avg_loss = 0
                 for i, batch in enumerate(utils.minibatches(validation_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
                     global_batch_num = batch_num * epoch + i
                     loss, ids = model.test(sess, batch)
                     print('loss: %f' % (loss))
-                    print(ids)
+                    print(ids)'''
                     
                     #avg_loss += loss
                 #avg_loss /= batch_num
