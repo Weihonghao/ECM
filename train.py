@@ -41,7 +41,7 @@ tf.app.flags.DEFINE_integer("max_train_data_size", 100,
                             "Limit on the size of training data (0: no limit).")
 tf.app.flags.DEFINE_integer("steps_per_print", 1,
                             "How many training steps to print info.")
-tf.app.flags.DEFINE_integer("steps_per_tensorboard", 10,
+tf.app.flags.DEFINE_integer("steps_per_tensorboard", 10000,
                             "How many training steps to write tensorboard.")
 tf.app.flags.DEFINE_integer("steps_per_checkpoint", 1,
                             "How many training steps to do per checkpoint.")

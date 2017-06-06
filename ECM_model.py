@@ -219,7 +219,7 @@ class ECMModel(object):
                 user_emotion_vector = tf.nn.embedding_lookup(self.emotion_vector, self.emotion_tag)
                 logging.debug('user_emotion_vector: %s' % str(user_emotion_vector))
                 next_input = tf.concat(
-                    [previous_output_vector, user_emotion_vector], 1)
+                    [previous_output_vector], 1) #user_emotion_vector
                     #[context, previous_output_vector, user_emotion_vector], 1)#read_gate_output], 1)
                 logging.debug('next_input: %s' % str(next_input))
                 return next_input
