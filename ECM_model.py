@@ -293,7 +293,7 @@ class ECMModel(object):
         return decoder_outputs_reshape, decoder_final_state, decoder_final_loop_state
 
     def external_memory_function(self, decode_state):  # decode_output, shape[batch_size,decode_size]
-        print('flag1')
+        '''print('flag1')
         #decode_output = tf.reshape(in_decode_output, [self.batch_size,-1,self.decoder_state_size])
         #gto = tf.sigmoid(tf.reduce_sum(tf.matmul(decode_state, self.vu),axis= 1))
         #gto = tf.reshape(gto, [tf.shape(gto)[0],1])
@@ -305,7 +305,9 @@ class ECMModel(object):
         print('flag3')
         arg = tf.argmax(tf.concat([ (1-gto) * decode_output[:,:self.non_emotion_size], gto * decode_output[:, self.non_emotion_size:]],
                                    1), axis=1)  # [batch_size * seq,1]
-        logging.debug('arg: %s' % str(arg))
+        logging.debug('arg: %s' % str(arg))'''
+        decode_output = tf.layers.dense(decode_state, self.vocab_size, name="state2output")
+        arg = tf.argmax(decode_state, axis=1)
         return arg, decode_output
 
 
