@@ -203,10 +203,10 @@ def train():
                 avg_loss /= batch_num
                 logging.info("Average training loss: {}".format(avg_loss))
                 
-
+                co =  0
                 if global_batch_num % FLAGS.steps_per_checkpoint == FLAGS.steps_per_checkpoint - 1:
                     save(saver, sess, global_batch_num)
-                '''logging.info("-- validation --")
+                logging.info("-- validation --")
                 batch_num = len(validation_set) / FLAGS.batch_size
                 avg_loss = 0
                 for i, batch in enumerate(utils.minibatches(validation_set, FLAGS.batch_size, window_batch=FLAGS.window_batch)):
@@ -214,10 +214,14 @@ def train():
                     loss, ids = model.test(sess, batch)
                     print('loss: %f' % (loss))
                     print(ids)
+                    if co < 10:
+                        co += 1
+                    else:
+                        break
                     
                     #avg_loss += loss
                 #avg_loss /= batch_num
-                #logging.info("Average validation loss: {}".format(avg_loss))'''
+                #logging.info("Average validation loss: {}".format(avg_loss))
                 
 
 
