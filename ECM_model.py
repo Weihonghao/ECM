@@ -19,14 +19,10 @@ class ECMModel(object):
     def __init__(self, embeddings, id2word, config, forward_only=False):
         magic_number = 256
         assert  (magic_number%2 == 0)
-        # self.vocab_label = vocab_label  # label for vocab
-        # self.emotion_label = emotion_label  # label for emotion
         self.config = config
         self.batch_size = config.batch_size
-        #print("batch size", self.batch_size)
         self.vocab_size = config.vocab_size
         self.non_emotion_size = config.non_emotion_size
-        #self.emotion_size = self.vocab_size - self.non_emotion_size
         self.id2word = id2word
         self.forward_only = forward_only
         self.emotion_kind = 6
@@ -38,7 +34,7 @@ class ECMModel(object):
         self.encoder_state_size = int(self.decoder_state_size / 2)
         #input_size = self.batch_size, self.decoder_state_size * 2 + config.embedding_size
         #input_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim + config.embedding_size]
-        input_size = [self.batch_size, config.embedding_size] #self.emotion_vector_dim +  
+        input_size = [self.batch_size, config.embedding_size] #self.emotion_vector_dim +
         if self.config.retrain_embeddings:  # whether to cotrain word embedding
             self.embeddings = tf.Variable(embeddings, name="Emb", dtype=tf.float32)
         else:
@@ -47,7 +43,7 @@ class ECMModel(object):
         eos_time_slice = EOS_ID  * tf.ones([self.batch_size], dtype=tf.int32, name='EOS')
         pad_time_slice = PAD_ID * tf.ones([self.batch_size], dtype=tf.int32, name='PAD')
         go_time_slice = GO_ID * tf.ones([self.batch_size], dtype=tf.int32, name='PAD')
-        
+
         self.eos_step_embedded = tf.nn.embedding_lookup(self.embeddings, eos_time_slice)
         self.pad_step_embedded = tf.nn.embedding_lookup(self.embeddings, pad_time_slice)#0.001 * tf.ones(input_size)
         self.go_step_embedded = tf.nn.embedding_lookup(self.embeddings, go_time_slice)#0.001 * tf.ones(input_size)
@@ -97,21 +93,13 @@ class ECMModel(object):
             cell_bw=lstm_bw_cell,
             inputs=inputs,
             sequence_length=sequence_length,
-            time_major=True,
+            time_major=True, # time major [max_len, batch_size, 0.5 decoder_dim]
             dtype=tf.float32)
 
-        # Concatinate forward and backword hidden output vectors.
-        # each vector is of size [batch_size, sequence_length, encoder_state_size]
 
         logging.debug('fw hidden state: %s' % str(outputs_fw))
         hidden_state = tf.concat([outputs_fw, outputs_bw], 2)
         logging.debug('Concatenated bi-LSTM hidden state: %s' % str(hidden_state))
-        # final_state_fw and final_state_bw are the final states of the forwards/backwards LSTM
-        """
-        print("encode output ", final_state_fw[1].get_shape())
-        concat_final_state = tf.concat([final_state_fw[1], final_state_bw[1]], 1)
-        logging.debug('Concatenated bi-LSTM final hidden state: %s' % str(concat_final_state))
-        """
 
         encoder_final_state_c = tf.concat(
             (final_state_fw.c, final_state_bw.c), 1)
