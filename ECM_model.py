@@ -171,8 +171,10 @@ class ECMModel(object):
                 eps_write_gate = tf.log(eps_matrix + write_gate)
                 write_one_hot = tf.one_hot(indices=self.emotion_tag, depth=self.emotion_kind)
                 write_one_hot_transpose = tf.transpose(write_one_hot)
-                logging.debug('Before: %s' % "fuck")
-                new_internalMemory = self.internalMemory * (tf.sign(tf.reshape(tf.reduce_sum(write_one_hot_transpose,axis=1),[self.emotion_kind,1])))
+
+                tmpFuck = tf.sign(tf.reshape(tf.reduce_sum(write_one_hot_transpose,axis=1),[self.emotion_kind,1]))
+                logging.debug('Before: %s' % str(tmpFuck))
+                new_internalMemory = self.internalMemory * (1- tmpFuck)
                 logging.debug('new_internalMemory: %s' % str(new_internalMemory))
                 new_internalMemory += tf.exp(tf.matmul(write_one_hot_transpose, eps_write_gate))
                 logging.debug('new_internalMemory: %s' % str(new_internalMemory))
