@@ -390,7 +390,7 @@ class ECMModel(object):
         if not self.forward_only:
             logging.debug('results: %s' % str(results))
             self.tfloss, self.EM_output = loss(results, final_IM)
-            self.train_op = tf.train.AdamOptimizer(0.0002, beta1=0.5).minimize(self.tfloss)
+            self.train_op = tf.train.AdamOptimizer(self.config.learning_rate, beta1=0.5).minimize(self.tfloss)
         else:
             EM_ids, EM_output = self.external_memory_function(tf.reshape(results,[-1,self.decoder_state_size]))
             self.EM_output = tf.reshape(EM_output,[self.batch_size,-1, self.vocab_size])
