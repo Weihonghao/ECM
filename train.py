@@ -41,7 +41,7 @@ tf.app.flags.DEFINE_integer("max_train_data_size", 100,
                             "Limit on the size of training data (0: no limit).")
 tf.app.flags.DEFINE_integer("steps_per_print", 1,
                             "How many training steps to print info.")
-tf.app.flags.DEFINE_integer("steps_per_tensorboard", 10000,
+tf.app.flags.DEFINE_integer("steps_per_tensorboard", 100,
                             "How many training steps to write tensorboard.")
 tf.app.flags.DEFINE_integer("steps_per_checkpoint", 1,
                             "How many training steps to do per checkpoint.")
@@ -188,11 +188,8 @@ def train():
                     global_batch_num = batch_num * epoch + i
                     time1 = time.time()
                     if global_batch_num % FLAGS.steps_per_tensorboard == FLAGS.steps_per_tensorboard - 1:
-                        run_options = tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE)
-                        run_metadata = tf.RunMetadata()
                         loss, merged = model.train(sess, batch, tensorboard=True)
                         summary_writer.add_summary(merged, global_batch_num)
-                        summary_writer.add_run_metadata(run_metadata, 'metadata {}'.format(global_batch_num), global_batch_num)
                     else:
                         loss = model.train(sess, batch, tensorboard=False)
                     print('epoch %d [%d/%d], loss: %f' % (epoch, i, batch_num, loss))
