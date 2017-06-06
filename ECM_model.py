@@ -167,7 +167,7 @@ class ECMModel(object):
             def get_next_input():
                 print('in get next input')
 
-                write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
+                '''write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
                 eps_matrix = self.eps * tf.ones_like(write_gate)
                 eps_write_gate = tf.log(eps_matrix + write_gate)
                 write_one_hot = tf.one_hot(indices=self.emotion_tag, depth=self.emotion_kind)
@@ -186,10 +186,10 @@ class ECMModel(object):
                 #previous_loop_state = new_internalMemory
 
                 previous_loop_state = new_internalMemory
-                logging.debug('after: %s' % "fuck")
+                logging.debug('after: %s' % "fuck")'''
 
 
-                tmp_id, _ = self.external_memory_function(previous_output)
+                tmp_id, _   = self.external_memory_function(previous_output)
                 previous_output_id = tmp_id#tf.reshape(self.external_memory_function(previous_output), [self.batch_size])
                 previous_output_vector = tf.nn.embedding_lookup(self.embeddings, previous_output_id)
                 score = attention_mechanism(previous_state)
@@ -212,7 +212,7 @@ class ECMModel(object):
                 next_input = tf.concat(
                     [context, previous_output_vector, read_gate_output], 1)
                 logging.debug('next_input: %s' % str(next_input))
-                return next_input, previous_loop_state
+                return next_input
 
             elements_finished = (time >= decoder_length)  # this operation produces boolean tensor of [batch_size]
             # defining if corresponding sequence has ended
@@ -224,31 +224,32 @@ class ECMModel(object):
             logging.debug('pad_step_embedded: %s' % str(pad_step_embedded))
 
 
+            if previous_state is not None:
 
-            '''write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
-            eps_matrix = self.eps * tf.ones_like(write_gate)
-            eps_write_gate = tf.log(eps_matrix + write_gate)
-            write_one_hot = tf.one_hot(indices=self.emotion_tag, depth=self.emotion_kind)
-            write_one_hot_transpose = tf.transpose(write_one_hot)
+                write_gate = tf.sigmoid(tf.layers.dense(previous_state, self.IM_size, name="write_gate"))
+                eps_matrix = self.eps * tf.ones_like(write_gate)
+                eps_write_gate = tf.log(eps_matrix + write_gate)
+                write_one_hot = tf.one_hot(indices=self.emotion_tag, depth=self.emotion_kind)
+                write_one_hot_transpose = tf.transpose(write_one_hot)
 
-            tmpFuck = tf.sign(tf.reshape(tf.reduce_sum(write_one_hot_transpose,axis=1),[self.emotion_kind,1]))
-            logging.debug('Before: %s' % str(tmpFuck))
-            new_internalMemory = previous_loop_state * (1- tmpFuck)
-            logging.debug('new_internalMemory: %s' % str(new_internalMemory))
-            tmpFuck2 = tf.matmul(write_one_hot_transpose, eps_write_gate)
-            logging.debug('TmpFuck2: %s' % str(tmpFuck2))
-            new_internalMemory += tf.exp(tmpFuck)
-            logging.debug('new_internalMemory: %s' % str(new_internalMemory))
-            assert new_internalMemory.get_shape().as_list() == previous_loop_state.get_shape().as_list()
-            previous_loop_state = new_internalMemory
-            logging.debug('after: %s' % "fuck")'''
+                tmpFuck = tf.sign(tf.reshape(tf.reduce_sum(write_one_hot_transpose,axis=1),[self.emotion_kind,1]))
+                logging.debug('Before: %s' % str(tmpFuck))
+                new_internalMemory = previous_loop_state * (1- tmpFuck)
+                logging.debug('new_internalMemory: %s' % str(new_internalMemory))
+                tmpFuck2 = tf.matmul(write_one_hot_transpose, eps_write_gate)
+                logging.debug('TmpFuck2: %s' % str(tmpFuck2))
+                new_internalMemory += tf.exp(tmpFuck)
+                logging.debug('new_internalMemory: %s' % str(new_internalMemory))
+                assert new_internalMemory.get_shape().as_list() == previous_loop_state.get_shape().as_list()
+                previous_loop_state = new_internalMemory
+                logging.debug('after: %s' % "fuck")
 
 
-            inputNow, loop_state = tf.cond(finished, lambda : (pad_step_embedded, None), get_next_input)
+            inputNow = tf.cond(finished, lambda : pad_step_embedded , get_next_input)
             #loop_state =  tf.cond(finished, None, previous_loop_state)
             logging.debug('inputNow: %s' % str(inputNow))
             logging.debug('previous_state: %s' % str(previous_state))
-            #loop_state = None
+            loop_state = previous_loop_state
             output = previous_output
             state = previous_state
             #output, state = decode_cell(inputNow, previous_state)
