@@ -47,7 +47,9 @@ class ECMModel(object):
         self.IM_size = 256
         self.eps = 1e-5
 
-        self.internalMemory = tf.get_variable("IMFuck", shape=[self.emotion_kind, self.IM_size],
+        with tf.variable_scope("reuse_sel_internalMemory") as scope:
+            scope.reuse_variables()
+            self.internalMemory = tf.get_variable("IMFuck", shape=[self.emotion_kind, self.IM_size],
                                               initializer=tf.contrib.layers.xavier_initializer())
 
         self.vu = tf.get_variable("vu", shape=[self.decoder_state_size, 1], initializer=tf.contrib.layers.xavier_initializer())
@@ -183,9 +185,8 @@ class ECMModel(object):
                 assert new_internalMemory.get_shape().as_list() == self.internalMemory.get_shape().as_list()
 
                 #self.internalMemory = new_internalMemory
-                with tf.variable_scope("reuse_sel_internalMemory") as scope:
-                    scope.reuse_variables()
-                    self.internalMemory = new_internalMemory
+
+                self.internalMemory = new_internalMemory
                 logging.debug('after: %s' % "fuck")
 
                 tmp_id, _ = self.external_memory_function(previous_output)
