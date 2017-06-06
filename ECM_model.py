@@ -45,7 +45,7 @@ class ECMModel(object):
         self.encoder_state_size = int(self.decoder_state_size / 2)
         #input_size = self.batch_size, self.decoder_state_size * 2 + config.embedding_size
         #input_size = [self.batch_size, self.decoder_state_size + self.emotion_vector_dim + config.embedding_size]
-        input_size = [self.batch_size, config.embedding_size] #self.emotion_vector_dim + 
+        input_size = [self.batch_size, config.embedding_size] #self.emotion_vector_dim +
         self.pad_step_embedded = tf.random_uniform(input_size)#0.001 * tf.ones(input_size)
         self.go_step_embedded = tf.random_uniform(input_size)#0.001 * tf.ones(input_size)
 
@@ -305,8 +305,9 @@ class ECMModel(object):
         #emotion_num = self.emotion_size
         decode_output = tf.layers.dense(decode_state, self.vocab_size, name="state2output")
         print('flag3')
-        arg = tf.argmax(tf.concat([ (1-gto) * decode_output[:,:self.non_emotion_size], gto * decode_output[:, self.non_emotion_size:]],
-                                   1), axis=1)  # [batch_size * seq,1]
+        arg = tf.argmax(decode_output, axis=1)
+        #arg = tf.argmax(tf.concat([ (1-gto) * decode_output[:,:self.non_emotion_size], gto * decode_output[:, self.non_emotion_size:]],
+                                   #1), axis=1)  # [batch_size * seq,1]
         logging.debug('arg: %s' % str(arg))
         return arg, decode_output
 
