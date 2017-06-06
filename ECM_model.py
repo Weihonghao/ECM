@@ -176,7 +176,9 @@ class ECMModel(object):
                 logging.debug('Before: %s' % str(tmpFuck))
                 new_internalMemory = self.internalMemory * (1- tmpFuck)
                 logging.debug('new_internalMemory: %s' % str(new_internalMemory))
-                new_internalMemory += tf.exp(tf.matmul(write_one_hot_transpose, eps_write_gate))
+                tmpFuck2 = tf.matmul(write_one_hot_transpose, eps_write_gate)
+                logging.debug('TmpFuck2: %s' % str(tmpFuck2))
+                new_internalMemory += tf.exp(tmpFuck)
                 logging.debug('new_internalMemory: %s' % str(new_internalMemory))
                 assert new_internalMemory.get_shape().as_list() == self.internalMemory.get_shape().as_list()
                 self.internalMemory = new_internalMemory
